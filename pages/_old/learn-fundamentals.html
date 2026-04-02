@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harness Engineering 基础 S01-S06 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {h:"pages/architecture.html",t:"\u8fd0\u884c\u65f6\u67b6\u6784",b:"ARCH"},
+    {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+    {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+    {h:"pages/context-permissions.html",t:"\u4e0a\u4e0b\u6587\u4e0e\u6743\u9650"},
+    {h:"pages/kairos.html",t:"KAIROS \u6df1\u5ea6\u62c6\u89e3",b:"\u2605"},
+    {h:"pages/systems-overview.html",t:"\u5b50\u7cfb\u7edf\u5168\u666f",b:"20+"}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/></svg></button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/></svg></button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$</span> Claude Code \u5b66\u4e60\u624b\u518c</a>'
+  +'<div class="header-spacer"></div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search</button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light</button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875</a></div><div class="sidebar-divider"></div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'</div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      // Sub-group: check if any child is active
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'</div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'</span>':'')+'</a>';
+      });
+      sh+='</div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'</span>':'')+'</a>';
+    }
+  });
+  sh+='</div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle: simple show/hide via header button
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false,false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden,true);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){
+    sb.classList.remove('hidden');
+    document.body.classList.remove('sidebar-off');
+    if(btn)btn.classList.remove('collapsed');
+  }else{
+    sb.classList.add('hidden');
+    document.body.classList.add('sidebar-off');
+    if(btn)btn.classList.add('collapsed');
+  }
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  // Collect outline: h2, h3, and <details> with id or containing summary with code/strong
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){
+      items.push({level:2,id:el.id,text:el.textContent.trim(),el:el});
+    } else if(el.tagName==="H3"){
+      items.push({level:3,id:el.id,text:el.textContent.trim(),el:el});
+    } else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");
+      if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();
+      if(txt.length<3)return;
+      // use existing id or generate one
+      var did=el.id;
+      if(!did){
+        did="d-"+items.length;
+        el.id=did;
+      }
+      // truncate for toc display
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");
+    rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2</div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='</div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'</a>';
+        th+='<div class="toc-children">';
+        inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'</a>';
+      }
+    });
+    if(inGroup)th+='</div>';
+    rt.innerHTML=th;
+    document.body.appendChild(rt);
+    // scroll spy
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          tocAll.forEach(function(l){l.classList.remove("active")});
+          var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+          if(m){
+            m.classList.add("active");
+            var p=m.closest(".toc-children");
+            if(p)p.classList.add("expanded");
+            // Smoothly scroll TOC panel to keep active item visible
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});
+          }
+        }
+      });
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    // click h2 to toggle
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(e){
+        var nx=a.nextElementSibling;
+        if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded");
+      });
+    });
+    // expand first group
+    var fg=rt.querySelector(".toc-children");
+    if(fg)fg.classList.add("expanded");
+
+    // Mobile TOC: FAB button + drawer
+    var fab=document.createElement("button");
+    fab.className="toc-fab";fab.textContent="\u2630";
+    fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){
+        // Clone TOC as drawer
+        drt=rt.cloneNode(true);
+        drt.id="drawerToc";
+        drt.classList.add("as-drawer");
+        drt.classList.remove("right-toc");
+        drt.className="right-toc as-drawer";
+        // Add close button
+        var cl=document.createElement("div");
+        cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed\u5927\u7eb2";
+        cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);
+        document.body.appendChild(drt);
+        var dov=document.createElement("div");
+        dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");
+      drt.classList.toggle("open");
+      dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);
+updBtn(saved);
+window.toggleTheme=function(){
+  var c=document.documentElement.getAttribute("data-theme")||"dark";
+  var n=c==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",n);
+  localStorage.setItem("theme",n);updBtn(n);
+};
+function updBtn(t){
+  var b=document.querySelector(".theme-toggle");
+  if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark";
+}
+
+// ---- Sidebar toggle ----
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Global Search ----
+window.openSearch=function(){
+  if(document.getElementById("searchModal"))return;
+  var m=document.createElement("div");m.id="searchModal";m.className="search-modal";
+  m.innerHTML='<div class="search-backdrop" onclick="closeSearch()"></div>'
+    +'<div class="search-box">'
+    +'<input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus />'
+    +'<div id="searchResults" class="search-results"></div>'
+    +'<div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c</div>'
+    +'</div>';
+  document.body.appendChild(m);
+  setTimeout(function(){m.classList.add("open")},10);
+  var inp=document.getElementById("searchInput");
+  inp.addEventListener("input",doSearch);
+  inp.addEventListener("keydown",function(e){
+    if(e.key==="Escape")closeSearch();
+    if(e.key==="Enter"){
+      var first=document.querySelector(".search-result-item");
+      if(first)first.click();
+    }
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();
+      var items=document.querySelectorAll(".search-result-item");
+      var cur=document.querySelector(".search-result-item.focused");
+      var idx=-1;
+      items.forEach(function(it,i){if(it===cur)idx=i});
+      if(e.key==="ArrowDown")idx=Math.min(idx+1,items.length-1);
+      else idx=Math.max(idx-1,0);
+      items.forEach(function(it){it.classList.remove("focused")});
+      if(items[idx]){items[idx].classList.add("focused");items[idx].scrollIntoView({block:"nearest"})}
+    }
+  });
+};
+window.closeSearch=function(){
+  var m=document.getElementById("searchModal");
+  if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}
+};
+document.addEventListener("keydown",function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}
+});
+
+// Search index: collect all text content
+var PAGES=[
+  {u:B+"index.html",t:"\u9996\u9875"},
+  {u:B+"pages/architecture.html",t:"\u8fd0\u884c\u65f6\u67b6\u6784"},
+  {u:B+"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3"},
+  {u:B+"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c"},
+  {u:B+"pages/context-permissions.html",t:"\u4e0a\u4e0b\u6587\u4e0e\u6743\u9650"},
+  {u:B+"pages/learn-s01.html",t:"S01 Agent Loop \u57fa\u7840"},
+  {u:B+"pages/learn-s02.html",t:"S02 Tool Use \u5de5\u5177"},
+  {u:B+"pages/learn-s03.html",t:"S03 TodoWrite \u8ba1\u5212"},
+  {u:B+"pages/learn-s04.html",t:"S04 Subagent \u5b50\u4ee3\u7406"},
+  {u:B+"pages/learn-s05.html",t:"S05 Skill Loading \u6280\u80fd"},
+  {u:B+"pages/learn-s06.html",t:"S06 Context Compact \u538b\u7f29"},
+  {u:B+"pages/learn-s07.html",t:"S07 Task System \u4efb\u52a1"},
+  {u:B+"pages/learn-s08.html",t:"S08 Background Tasks \u540e\u53f0"},
+  {u:B+"pages/learn-s09.html",t:"S09 Agent Teams \u56e2\u961f"},
+  {u:B+"pages/learn-s10.html",t:"S10 Team Protocols \u534f\u8bae"},
+  {u:B+"pages/learn-s11.html",t:"S11 Autonomous Agents \u81ea\u7ec4\u7ec7"},
+  {u:B+"pages/learn-s12.html",t:"S12 Worktree Isolation \u9694\u79bb"},
+  {u:B+"pages/glossary.html",t:"\u672f\u8bed\u8868"},
+  {u:B+"pages/systems-overview.html",t:"\u5b50\u7cfb\u7edf\u5168\u666f Buddy Voice Coordinator Remote"},
+  {u:B+"pages/kairos.html",t:"KAIROS \u9f99\u867e Proactive Coordinator Brief Dream Assistant"}
+];
+
+function doSearch(){
+  var q=document.getElementById("searchInput").value.trim().toLowerCase();
+  var res=document.getElementById("searchResults");
+  if(!q){res.innerHTML="";return}
+  // Search current page headings + details summaries
+  var hits=[];
+  var pw2=document.querySelector(".page-wrap");
+  if(pw2){
+    pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){
+      var txt=el.textContent||"";
+      if(txt.toLowerCase().indexOf(q)>-1){
+        var id=el.id||el.closest("[id]")?.id||"";
+        hits.push({text:txt.substring(0,120),id:id,local:true});
+      }
+    });
+  }
+  // Also show page-level matches
+  PAGES.forEach(function(pg){
+    if(pg.t.toLowerCase().indexOf(q)>-1){
+      hits.push({text:pg.t,url:pg.u,local:false});
+    }
+  });
+  // Deduplicate and limit
+  var seen=new Set();
+  var html="";var count=0;
+  hits.forEach(function(h){
+    if(count>=12)return;
+    var key=h.text.substring(0,50);
+    if(seen.has(key))return;seen.add(key);count++;
+    if(h.local&&h.id){
+      html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">'
+        +'<span class="sr-type">\u672c\u9875</span>'+esc(h.text)+'</div>';
+    } else if(!h.local){
+      html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'">'
+        +'<span class="sr-type">\u9875\u9762</span>'+esc(h.text)+'</div>';
+    }
+  });
+  if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c</div>';
+  res.innerHTML=html;
+}
+function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag community">LEARN CLAUDE CODE</div>
+<h1>Harness Engineering 基础 — <em>S01 到 S06</em></h1>
+<p class="subtitle">
+  这六节课从零开始构建一个 AI Agent。每节课只增加一个核心机制，30 行代码就能让你理解 Claude Code 背后的真正原理。不是看文档，而是亲手搭积木。
+</p>
+
+<div class="callout blue">
+  <strong>学习路线图：</strong>S01 建骨架（循环） &rarr; S02 长手臂（工具） &rarr; S03 装大脑前额叶（规划） &rarr; S04 分身术（子 Agent） &rarr; S05 按需记忆（技能加载） &rarr; S06 瘦身（上下文压缩）。每一课都在前一课的基础上叠加，不跳步。
+</div>
+
+<!-- ============================================================ -->
+<!-- S01: Agent Loop -->
+<!-- ============================================================ -->
+<h2 id="s01">S01: Agent Loop — 30 行代码构成整个 Agent</h2>
+
+<h3 id="这一课解决什么问题">这一课解决什么问题</h3>
+<p>
+  大语言模型能推理、能写代码，但它碰不到真实世界。你问它「帮我创建一个文件」，它只会输出文本告诉你怎么做，却没法真的执行 <code class="ic">touch file.txt</code>。模型被关在一个只能说话的牢笼里。
+</p>
+<p>
+  Agent Loop 要做的就是<strong>打破这个牢笼</strong>：让模型能<em>持续</em>跟外部世界交互，而不是一问一答就结束。
+</p>
+
+<h3 id="核心机制">核心机制</h3>
+<p>整个 Agent 的骨架只有一个 <code class="ic">while True</code> 循环和一个退出条件：</p>
+
+<div class="diagram">
+  ┌─────────────────────────────────────────────────────┐
+  │                   AGENT LOOP                        │
+  │                                                     │
+  │   messages = [system_prompt, user_message]           │
+  │                                                     │
+  │   while True:                                       │
+  │   ┌───────────────────────────────────────────┐     │
+  │   │  response = claude.send(messages)          │     │
+  │   │                                            │     │
+  │   │  if response.stop_reason == "end_turn":    │     │
+  │   │      break   ← 模型主动说「我做完了」      │     │
+  │   │                                            │     │
+  │   │  if response.stop_reason == "tool_use":    │     │
+  │   │      result = execute_tool(response.tool)  │     │
+  │   │      messages.append(response)    ← 累积   │     │
+  │   │      messages.append(tool_result) ← 累积   │     │
+  │   │      continue  ← 回到循环顶部              │     │
+  │   └───────────────────────────────────────────┘     │
+  │                                                     │
+  │   messages[] 是不断增长的完整对话历史                 │
+  │   每次 API 调用都带上全部历史 ← 这很贵但很关键       │
+  └─────────────────────────────────────────────────────┘
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">stop_reason<span class="tip-text">Claude API 返回的字段，告诉你模型为什么停止输出。"end_turn" 表示模型认为对话结束；"tool_use" 表示模型想调用一个工具。</span></span>
+    — 循环的唯一退出信号。不是你决定何时停，是模型自己决定。
+  </li>
+  <li>
+    <span class="tip">messages[]<span class="tip-text">一个数组，存放整个对话的完整历史——包括系统提示、用户消息、模型回复、工具调用请求、工具执行结果。每次 API 调用都把这个数组完整发给模型。</span></span>
+    — 模型的「记忆」。每次循环都会往里追加新消息，模型下一轮就能看到上一轮做了什么。
+  </li>
+  <li>
+    <span class="tip">tool_result<span class="tip-text">工具执行完毕后返回的结果。它作为一条新消息追加到 messages[] 中，这样模型就能看到工具执行的输出，并据此决定下一步。</span></span>
+    — 工具的执行结果，回灌给模型让它做下一步判断。
+  </li>
+</ul>
+
+<div class="callout">
+  <strong>为什么是 while True 而不是 for 循环？</strong>因为你无法预知模型需要几步才能完成任务。一个「帮我重构这个模块」的请求可能需要 3 步，也可能需要 30 步。循环次数由模型的 stop_reason 决定，不由人决定。
+</div>
+
+<h3 id="messages-累积机制详解">messages[] 累积机制详解</h3>
+<p>这是最容易被低估的设计。来看一个具体例子：</p>
+
+<table class="tbl">
+  <tr><th>循环轮次</th><th>messages[] 内容</th><th>token 数（估算）</th></tr>
+  <tr><td>初始</td><td>system + user_message</td><td>~500</td></tr>
+  <tr><td>第 1 轮</td><td>+ assistant(tool_call) + tool_result</td><td>~1,200</td></tr>
+  <tr><td>第 2 轮</td><td>+ assistant(tool_call) + tool_result</td><td>~2,000</td></tr>
+  <tr><td>第 3 轮</td><td>+ assistant(end_turn)</td><td>~2,300</td></tr>
+</table>
+
+<p>注意：messages[] 只增不减。每一轮的完整 assistant 回复和 tool_result 都保留在数组里。这确保了模型在第 N 轮能看到之前所有轮的上下文——但代价是 token 成本线性增长。这也是 S06（Context Compact）存在的原因。</p>
+
+<h3 id="对应到-claude-code-官方的什么">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">QueryEngine.submitMessage()</div>
+  <p>Claude Code 源码中的核心循环在 <code class="ic">QueryEngine</code> 类里。它做的事情和我们的 while True 完全一样，只是多了错误处理、重试、流式输出、权限检查等生产级逻辑。</p>
+  <ul>
+    <li><code class="ic">submitMessage()</code> — 发送消息并进入循环</li>
+    <li><code class="ic">processToolCalls()</code> — 执行工具调用</li>
+    <li><code class="ic">appendToMessages()</code> — 累积消息</li>
+    <li>退出条件同样是 <code class="ic">stop_reason === "end_turn"</code></li>
+  </ul>
+</div>
+
+<h3 id="变更对比表">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S01 之前（无 Agent）</th><th>S01 之后（有 Agent Loop）</th></tr>
+  <tr><td>交互模式</td><td>一问一答，单次调用</td><td>持续循环，多步执行</td></tr>
+  <tr><td>模型能力</td><td>只能输出文本</td><td>可以调用工具并获取结果</td></tr>
+  <tr><td>退出控制</td><td>调用者决定</td><td>模型自己通过 stop_reason 决定</td></tr>
+  <tr><td>上下文</td><td>单次，无记忆</td><td>messages[] 累积完整历史</td></tr>
+  <tr><td>代码量</td><td>—</td><td>~30 行 Python</td></tr>
+</table>
+
+<!-- Agent Loop Simulator -->
+<h3 id="simulator">Agent Loop 交互模拟器</h3>
+<p>点击「播放」观察 Agent Loop 的 7 个步骤如何依次执行，消息如何在 messages[] 中累积：</p>
+
+<div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 24px; margin: 20px 0;">
+  <!-- Controls -->
+  <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+    <button id="simPlay" onclick="simStart()" style="padding: 8px 20px; background: var(--accent-blue-dim); color: var(--accent-blue); border: 1px solid rgba(91,141,239,0.2); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 13px; cursor: pointer; font-weight: 600;">&#9654; 播放</button>
+    <button id="simReset" onclick="simReset()" style="padding: 8px 20px; background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 13px; cursor: pointer;">&#8635; 重置</button>
+    <span id="simStatus" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); display: flex; align-items: center; margin-left: auto;">等待开始...</span>
+  </div>
+
+  <!-- Step Indicators -->
+  <div id="simSteps" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;">
+    <div class="sim-step" data-step="0" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">1</span>
+      <span>初始化 messages = [system_prompt, user_message]</span>
+    </div>
+    <div class="sim-step" data-step="1" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">2</span>
+      <span>发送 messages[] 给 Claude API</span>
+    </div>
+    <div class="sim-step" data-step="2" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">3</span>
+      <span>收到 response: stop_reason = "tool_use" (调用 Bash)</span>
+    </div>
+    <div class="sim-step" data-step="3" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">4</span>
+      <span>执行工具 &rarr; 结果追加到 messages[]</span>
+    </div>
+    <div class="sim-step" data-step="4" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">5</span>
+      <span>第二轮：发送更新后的 messages[] 给 API</span>
+    </div>
+    <div class="sim-step" data-step="5" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">6</span>
+      <span>收到 response: stop_reason = "end_turn"</span>
+    </div>
+    <div class="sim-step" data-step="6" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-muted); transition: all 300ms ease;">
+      <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; min-width: 20px;">7</span>
+      <span>break &mdash; 循环结束，返回最终结果给用户</span>
+    </div>
+  </div>
+
+  <!-- Message Log -->
+  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">messages[] 实时状态</div>
+  <div id="simLog" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; min-height: 120px; max-height: 260px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; line-height: 1.7;">
+    <div style="color: var(--text-muted);">// 等待开始...</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var simTimer = null;
+  var simCurrent = -1;
+  var simMessages = [
+    { text: '<span style="color:#c792ea">[system]</span> 你是一个编程助手，可以使用 Bash 工具...', step: 0 },
+    { text: '<span style="color:#5b8def">[user]</span> 帮我查看当前目录有哪些文件', step: 0 },
+    { text: '<span style="color:#e8a741">[sending]</span> → claude.messages.create(messages=[2 条])', step: 1 },
+    { text: '<span style="color:#4ec9b0">[assistant]</span> tool_use: Bash({command: "ls -la"}) | stop_reason: tool_use', step: 2 },
+    { text: '<span style="color:#f07178">[tool_result]</span> drwxr-xr-x  5 user  staff  160  src/\n                    -rw-r--r--  1 user  staff  842  package.json\n                    -rw-r--r--  1 user  staff  156  README.md', step: 3 },
+    { text: '<span style="color:#e8a741">[sending]</span> → claude.messages.create(messages=[5 条])', step: 4 },
+    { text: '<span style="color:#4ec9b0">[assistant]</span> 当前目录有 3 个项目: src/, package.json, README.md | stop_reason: end_turn', step: 5 },
+    { text: '<span style="color:#89ddff">[loop]</span> stop_reason === "end_turn" → break', step: 6 }
+  ];
+
+  function getSteps() { return document.querySelectorAll('.sim-step'); }
+
+  window.simStart = function() {
+    if (simTimer) return;
+    simCurrent = -1;
+    simReset();
+    document.getElementById('simStatus').textContent = '运行中...';
+    document.getElementById('simPlay').disabled = true;
+    simTimer = setInterval(function() {
+      simCurrent++;
+      if (simCurrent > 6) {
+        clearInterval(simTimer);
+        simTimer = null;
+        document.getElementById('simStatus').textContent = '完成 — 循环经过 2 轮后退出';
+        document.getElementById('simPlay').disabled = false;
+        return;
+      }
+      // Light up step
+      var steps = getSteps();
+      steps.forEach(function(el, i) {
+        if (i === simCurrent) {
+          el.style.borderColor = 'rgba(91,141,239,0.5)';
+          el.style.background = 'var(--accent-blue-dim)';
+          el.style.color = 'var(--accent-blue)';
+        } else if (i < simCurrent) {
+          el.style.borderColor = 'rgba(78,201,176,0.3)';
+          el.style.background = 'var(--accent-green-dim)';
+          el.style.color = 'var(--accent-green)';
+        }
+      });
+      // Add messages for this step
+      var log = document.getElementById('simLog');
+      simMessages.forEach(function(m) {
+        if (m.step === simCurrent) {
+          var div = document.createElement('div');
+          div.innerHTML = m.text;
+          div.style.marginBottom = '4px';
+          div.style.opacity = '0';
+          div.style.transition = 'opacity 300ms';
+          log.appendChild(div);
+          setTimeout(function() { div.style.opacity = '1'; }, 50);
+        }
+      });
+      log.scrollTop = log.scrollHeight;
+    }, 1200);
+  };
+
+  window.simReset = function() {
+    if (simTimer) { clearInterval(simTimer); simTimer = null; }
+    simCurrent = -1;
+    document.getElementById('simStatus').textContent = '等待开始...';
+    document.getElementById('simPlay').disabled = false;
+    var steps = getSteps();
+    steps.forEach(function(el) {
+      el.style.borderColor = 'var(--border-subtle)';
+      el.style.background = 'var(--bg-deep)';
+      el.style.color = 'var(--text-muted)';
+    });
+    document.getElementById('simLog').innerHTML = '<div style="color: var(--text-muted)">// 等待开始...</div>';
+  };
+})();
+</script>
+
+
+<!-- ============================================================ -->
+<!-- S02: Tool Use -->
+<!-- ============================================================ -->
+<h2 id="s02">S02: Tool Use — dispatch map 让模型长出手臂</h2>
+
+<h3 id="这一课解决什么问题-2">这一课解决什么问题</h3>
+<p>
+  S01 的 Agent 只有一个 Bash 工具——这就像给人一把万能钥匙，看似什么门都能开，实则：
+</p>
+<ul>
+  <li><strong>不安全</strong> — <code class="ic">rm -rf /</code> 也是合法的 bash 命令</li>
+  <li><strong>不精确</strong> — 让模型用 bash + sed 编辑文件，错误率极高</li>
+  <li><strong>不可控</strong> — 你无法对「读文件」和「删文件」设置不同的权限</li>
+</ul>
+<p>
+  S02 的答案：<strong>把一个万能工具拆成一组专用工具</strong>，每个工具有明确的职责边界和安全约束。
+</p>
+
+<h3 id="核心机制-2">核心机制</h3>
+
+<div class="diagram">
+  ┌──────────────── dispatch map ────────────────┐
+  │                                               │
+  │   tools = {                                   │
+  │     "read_file":   read_handler,              │
+  │     "write_file":  write_handler,             │
+  │     "list_dir":    list_handler,              │
+  │     "bash":        bash_handler,              │
+  │   }                                           │
+  │                                               │
+  │   模型回复: tool_use(name="read_file",        │
+  │                      input={path: "src/a.py"})│
+  │              │                                │
+  │              ▼                                │
+  │   handler = tools[name]  ← 字典查找           │
+  │              │                                │
+  │              ▼                                │
+  │   safe_path(input.path)  ← 沙箱检查           │
+  │     • 必须在 workspace/ 下                    │
+  │     • 不能包含 ../                            │
+  │     • 不能是 symlink 逃逸                     │
+  │              │                                │
+  │              ▼                                │
+  │   result = handler(input) ← 执行              │
+  │              │                                │
+  │              ▼                                │
+  │   追加到 messages[] → 继续循环                 │
+  └───────────────────────────────────────────────┘
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">dispatch map<span class="tip-text">一个字典（Python dict / JS object），key 是工具名称字符串，value 是对应的处理函数。模型返回工具名后，直接用字典查找找到处理函数，不需要 if-else 链。</span></span>
+    — 比 if-else 更优雅，也更容易扩展：新增工具只需在字典里加一行。
+  </li>
+  <li>
+    <span class="tip">safe_path()<span class="tip-text">一个安全检查函数，确保文件路径不会逃出预定的工作目录。它会规范化路径、去掉 ../ 、检查 symlink 指向，防止模型意外或恶意访问系统文件。</span></span>
+    — 文件操作的沙箱守门人。没有它，模型可以读写任何文件。
+  </li>
+  <li>
+    <span class="tip">tool schema<span class="tip-text">每个工具的结构化描述，告诉模型这个工具叫什么、需要什么参数、每个参数的类型和含义。模型根据 schema 决定如何调用工具。格式类似 JSON Schema。</span></span>
+    — 模型不是靠「猜」来调用工具的，它看的是你提供的 schema 定义。
+  </li>
+</ul>
+
+<h3 id="对应到-claude-code-官方的什么-2">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">tools.ts — 工具注册表</div>
+  <p>Claude Code 源码中有一个工具注册表，每个工具是一个对象，包含：</p>
+  <ul>
+    <li><code class="ic">name</code> — 工具名称</li>
+    <li><code class="ic">description</code> — 模型看到的工具描述</li>
+    <li><code class="ic">inputSchema</code> — Zod 定义的参数结构</li>
+    <li><code class="ic">handler()</code> — 执行函数</li>
+    <li><code class="ic">isReadOnly</code> — 是否只读（影响权限和并行）</li>
+    <li><code class="ic">isEnabled()</code> — 动态判断是否在当前上下文中启用</li>
+  </ul>
+  <p>本质就是一个增强版的 dispatch map，加了权限控制、schema 校验、feature gate 等生产级功能。</p>
+</div>
+
+<h3 id="变更对比表-2">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S01（只有 Bash）</th><th>S02（dispatch map）</th></tr>
+  <tr><td>工具数量</td><td>1 个（bash）</td><td>4+ 个专用工具</td></tr>
+  <tr><td>安全性</td><td>无限制</td><td>safe_path() 沙箱</td></tr>
+  <tr><td>可扩展性</td><td>硬编码</td><td>字典加一行即可</td></tr>
+  <tr><td>模型精确度</td><td>需要自己拼 bash 命令</td><td>结构化参数，类型安全</td></tr>
+  <tr><td>权限粒度</td><td>全有或全无</td><td>可对每个工具单独控制</td></tr>
+  <tr><td>新增代码</td><td>—</td><td>dispatch 字典 + safe_path + handler 函数</td></tr>
+</table>
+
+<div class="callout green">
+  <strong>洞察：</strong>Claude Code 有 42 个内置工具，但底层机制和这 30 行的 dispatch map 完全一样——一个字典查找 + handler 调用。复杂度不在调度本身，而在每个 handler 内部的实现。
+</div>
+
+
+<!-- ============================================================ -->
+<!-- S03: TodoWrite -->
+<!-- ============================================================ -->
+<h2 id="s03">S03: TodoWrite — 让 Agent 学会做计划</h2>
+
+<h3 id="这一课解决什么问题-2-2">这一课解决什么问题</h3>
+<p>
+  让 Agent 做一个多步骤任务（比如「重构这 5 个文件并更新测试」），它经常做到第 3 步就忘了第 1 步是什么，或者跳过中间步骤直接去做最后一步。<strong>模型没有「计划」的概念</strong>——它只是在每一轮预测下一个最可能的 token。
+</p>
+<p>
+  人类做复杂任务会列清单、划掉做完的、标记正在做的。S03 就是给 Agent 装一个这样的清单系统。
+</p>
+
+<h3 id="核心机制-2-2">核心机制</h3>
+
+<div class="diagram">
+  ┌─────────────── TodoManager ───────────────┐
+  │                                            │
+  │   todos = [                                │
+  │     {id:1, task:"读取文件结构",              │
+  │      status:"completed"   ✓},              │
+  │     {id:2, task:"重构 auth 模块",           │
+  │      status:"in_progress" ⚡},             │
+  │     {id:3, task:"更新测试",                 │
+  │      status:"pending"     ○},              │
+  │     {id:4, task:"运行 CI 验证",             │
+  │      status:"pending"     ○},              │
+  │   ]                                        │
+  │                                            │
+  │   规则约束：                                │
+  │   ┌──────────────────────────────────────┐ │
+  │   │ 1. 同一时间只有一个 in_progress       │ │
+  │   │    → 强制模型聚焦，不能同时做两件事   │ │
+  │   │                                      │ │
+  │   │ 2. nag reminder 机制：                │ │
+  │   │    每次 API 回复后检查——              │ │
+  │   │    如果有 pending 的 todo             │ │
+  │   │    就在 system prompt 注入提醒        │ │
+  │   │    "你还有未完成的任务，请继续"       │ │
+  │   │                                      │ │
+  │   │ 3. 只能通过 TodoWrite 工具修改状态    │ │
+  │   │    模型不能直接改数组                  │ │
+  │   └──────────────────────────────────────┘ │
+  └────────────────────────────────────────────┘
+
+  工作流：
+  模型调用 TodoWrite(action="create", tasks=[...])
+       ↓
+  TodoManager 创建清单
+       ↓
+  模型调用 TodoWrite(action="update", id=1, status="in_progress")
+       ↓
+  模型执行任务...
+       ↓
+  模型调用 TodoWrite(action="update", id=1, status="completed")
+       ↓
+  nag: "还有 3 个待办事项"
+       ↓
+  模型继续下一个...
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">nag reminder<span class="tip-text">一种注入到系统提示中的提醒消息。每次 API 调用前检查，如果有未完成的 todo，就自动在 system prompt 末尾追加一段提醒文本，确保模型不会忘记未完成的任务。</span></span>
+    — 防遗忘的关键机制。没有它，模型做完第一步可能就直接回复用户了。
+  </li>
+  <li>
+    <span class="tip">单一 in_progress 约束<span class="tip-text">任何时刻只允许一个 todo 的状态为 "in_progress"。这是一个硬约束——如果模型试图同时标记两个为 in_progress，TodoManager 会拒绝。目的是强制模型线性推进任务。</span></span>
+    — 防止模型在多个任务间来回跳跃导致都做不好。
+  </li>
+</ul>
+
+<h3 id="对应到-claude-code-官方的什么-2-2">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">TodoWriteTool</div>
+  <p>Claude Code 内置了 <code class="ic">TodoWriteTool</code>，机制几乎一模一样：</p>
+  <ul>
+    <li>维护一个 todo list 数据结构</li>
+    <li>支持 create / update / delete 操作</li>
+    <li>system prompt 中注入任务状态</li>
+    <li>在需要长步骤规划时自动被模型调用</li>
+  </ul>
+  <p>官方实现额外支持 todo 的优先级排序和自动清理已完成的过旧 todo。</p>
+</div>
+
+<h3 id="变更对比表-2-2">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S02（无规划）</th><th>S03（TodoWrite）</th></tr>
+  <tr><td>任务管理</td><td>无，模型自由发挥</td><td>结构化清单 + 状态追踪</td></tr>
+  <tr><td>聚焦性</td><td>容易跑偏、跳步</td><td>单一 in_progress 强制聚焦</td></tr>
+  <tr><td>记忆辅助</td><td>只靠 messages[] 上下文</td><td>nag reminder 持续提醒</td></tr>
+  <tr><td>完成率</td><td>多步任务经常漏步骤</td><td>显著提升任务完成率</td></tr>
+  <tr><td>新增组件</td><td>—</td><td>TodoManager + TodoWrite 工具 + nag 机制</td></tr>
+</table>
+
+<div class="callout">
+  <strong>洞察：</strong>TodoWrite 不是「辅助功能」，它是让 Agent 能完成复杂任务的基础设施。没有规划能力的 Agent 只能做一步到位的简单任务。一旦需要 3 步以上的协调，Todo 系统的价值就显现出来了。
+</div>
+
+
+<!-- ============================================================ -->
+<!-- S04: Subagent -->
+<!-- ============================================================ -->
+<h2 id="s04">S04: Subagent — 用上下文隔离保持主线清晰</h2>
+
+<h3 id="这一课解决什么问题-2-2-2">这一课解决什么问题</h3>
+<p>
+  到了 S03，Agent 可以规划和执行多步任务了。但有个新问题：<strong>messages[] 越来越胖</strong>。
+</p>
+<p>
+  假设你让 Agent 「重构 auth 模块」，它需要先去读 10 个文件理解代码结构。这 10 次 read_file 的完整结果全部堆在 messages[] 里——但主线任务真正需要的只是「auth 模块的接口设计如下：...」这样一句摘要。那些中间过程（几千行代码内容）白白消耗着宝贵的上下文窗口。
+</p>
+
+<h3 id="核心机制-2-2-2">核心机制</h3>
+
+<div class="diagram">
+  ┌────────────── 主 Agent ──────────────────────┐
+  │                                               │
+  │  messages = [system, user, ...]               │
+  │  "帮我重构 auth 模块"                         │
+  │       │                                       │
+  │       │ 模型决定: "我需要先了解代码结构"       │
+  │       │                                       │
+  │       ▼                                       │
+  │  ┌─── 子 Agent (独立上下文) ──────────┐       │
+  │  │  messages = []  ← 全新的空数组      │       │
+  │  │  system: "你是代码分析助手"         │       │
+  │  │  task: "分析 src/auth/ 的代码结构"  │       │
+  │  │                                     │       │
+  │  │  循环 1: read_file(auth/index.ts)   │       │
+  │  │  循环 2: read_file(auth/types.ts)   │       │
+  │  │  循环 3: read_file(auth/middleware)  │       │
+  │  │  ... 读了 10 个文件 ...             │       │
+  │  │  循环 N: end_turn → 输出摘要        │       │
+  │  │                                     │       │
+  │  │  return: "auth 模块包含 3 个核心    │       │
+  │  │   接口: AuthProvider, Session,      │       │
+  │  │   TokenManager..."                  │       │
+  │  └──────────────────────────────────────┘       │
+  │       │                                       │
+  │       ▼  只有摘要进入主 messages[]             │
+  │  messages.append(subagent_summary)             │
+  │                                               │
+  │  主 Agent 继续工作，上下文依然干净              │
+  └───────────────────────────────────────────────┘
+
+  对比：
+  无子 Agent: messages[] = 主任务 + 10个文件完整内容 ≈ 50,000 tokens
+  有子 Agent: messages[] = 主任务 + 一段摘要          ≈ 2,000 tokens
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">上下文隔离<span class="tip-text">子 Agent 有自己独立的 messages[] 数组，它的中间过程（工具调用、中间思考）不会污染主 Agent 的上下文。子 Agent 结束后，只有最终输出（摘要）被追加到主 Agent 的 messages[] 中。</span></span>
+    — 核心价值：把「探索性工作」的中间垃圾隔离在子上下文里。
+  </li>
+  <li>
+    <span class="tip">摘要返回<span class="tip-text">子 Agent 的完整输出被压缩为一段简洁的摘要文本，只包含主 Agent 决策所需的关键信息。相当于你派下属去调研，他回来只给你汇报结论，不把所有原始资料堆你桌上。</span></span>
+    — 信息密度最大化。主 Agent 拿到的是蒸馏后的精华。
+  </li>
+</ul>
+
+<h3 id="对应到-claude-code-官方的什么-2-2-2">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">AgentTool</div>
+  <p>Claude Code 的 <code class="ic">AgentTool</code> 就是这个机制的生产实现：</p>
+  <ul>
+    <li>创建一个独立的子 Agent 实例，拥有自己的 messages[]</li>
+    <li>子 Agent 可以使用所有只读工具（不允许写操作，除非明确授权）</li>
+    <li>子 Agent 执行完毕后，将结果摘要返回给主 Agent</li>
+    <li>主 Agent 的 messages[] 中只出现摘要，中间过程全部丢弃</li>
+  </ul>
+  <p>官方实现还有一个 <code class="ic">maxTurns</code> 限制，防止子 Agent 无限循环。</p>
+</div>
+
+<h3 id="变更对比表-2-2-2">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S03（单 Agent）</th><th>S04（主 + 子 Agent）</th></tr>
+  <tr><td>上下文大小</td><td>所有中间过程堆积</td><td>只保留摘要，压缩比可达 25:1</td></tr>
+  <tr><td>信息质量</td><td>噪声多，关键信息被淹没</td><td>高密度摘要，直击要点</td></tr>
+  <tr><td>可处理任务规模</td><td>受上下文窗口限制</td><td>子 Agent 可独立处理大量文件</td></tr>
+  <tr><td>架构复杂度</td><td>单循环</td><td>嵌套循环（Agent 里跑 Agent）</td></tr>
+  <tr><td>新增代码</td><td>—</td><td>SubAgent 函数 + 独立 messages[] 管理</td></tr>
+</table>
+
+<div class="callout blue">
+  <strong>洞察：</strong>子 Agent 的本质是「用 API 调用成本换上下文空间」。子 Agent 的执行需要额外的 API 调用，但它释放了主 Agent 的上下文窗口，让主 Agent 能处理更大的任务。这是一种空间换时间（准确说是上下文空间换 API 调用）的策略。
+</div>
+
+
+<!-- ============================================================ -->
+<!-- S05: Skills -->
+<!-- ============================================================ -->
+<h2 id="s05">S05: Skills — 按需加载的知识库</h2>
+
+<h3 id="这一课解决什么问题-2-2-2-2">这一课解决什么问题</h3>
+<p>
+  你想让 Agent 掌握很多专业技能——Git 操作规范、代码审查清单、部署流程、特定框架的最佳实践。把这些全塞进 system prompt？一个技能 500 token，20 个技能就是 10,000 token——还没开始干活，上下文窗口就吃掉了 10%。更糟糕的是，大多数任务只用到其中 1-2 个技能。
+</p>
+<p>
+  S05 的思路：<strong>只在 system prompt 放名字，内容按需加载</strong>。
+</p>
+
+<h3 id="核心机制-2-2-2-2">核心机制</h3>
+
+<div class="diagram">
+  ┌────────────── 两层注入机制 ──────────────────┐
+  │                                               │
+  │  第一层：System Prompt（始终存在）             │
+  │  ┌───────────────────────────────────────┐    │
+  │  │ "你有以下可用技能:                     │    │
+  │  │  - git-commit: Git 提交规范            │    │
+  │  │  - code-review: 代码审查清单           │    │
+  │  │  - deploy: 部署流程                    │    │
+  │  │  - react-best: React 最佳实践          │    │
+  │  │  ...共 20 个技能名称"                  │    │
+  │  │                                        │    │
+  │  │  成本: ~200 tokens（只有名字）         │    │
+  │  └───────────────────────────────────────┘    │
+  │                                               │
+  │  用户说: "帮我提交代码"                        │
+  │       │                                       │
+  │       ▼  模型识别需要 git-commit 技能         │
+  │                                               │
+  │  第二层：按需加载（使用时才注入）              │
+  │  ┌───────────────────────────────────────┐    │
+  │  │ 模型调用: use_skill("git-commit")      │    │
+  │  │       │                                │    │
+  │  │       ▼                                │    │
+  │  │ 从文件系统加载完整技能内容:             │    │
+  │  │ skills/git-commit.md                   │    │
+  │  │ → 500 tokens 的详细规范                │    │
+  │  │       │                                │    │
+  │  │       ▼                                │    │
+  │  │ 注入到 messages[] 中（作为 system       │    │
+  │  │ reminder 或 tool_result）               │    │
+  │  └───────────────────────────────────────┘    │
+  │                                               │
+  │  对比:                                        │
+  │  全量注入: 20 × 500 = 10,000 tokens（始终）   │
+  │  按需注入: 200 + 500 = 700 tokens（本次）     │
+  └───────────────────────────────────────────────┘
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">技能目录（skill catalog）<span class="tip-text">所有可用技能的名称和简短描述列表。始终存在于 system prompt 中，让模型知道自己「有哪些能力可以用」，但不包含具体内容。类似于书的目录页。</span></span>
+    — 成本极低的「能力索引」。
+  </li>
+  <li>
+    <span class="tip">按需注入（lazy loading）<span class="tip-text">只在模型决定使用某个技能时，才从文件系统加载完整的技能内容。这和前端开发中的「懒加载」是同一个思路——不用的东西不加载。</span></span>
+    — 核心优化：用一次文件读取替代始终占据上下文的大块 token。
+  </li>
+</ul>
+
+<h3 id="对应到-claude-code-官方的什么-2-2-2-2">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">SkillTool + skill loading 机制</div>
+  <p>Claude Code 的技能加载和 S05 几乎一致：</p>
+  <ul>
+    <li>技能名称列表在 system prompt 中以 <code class="ic">system-reminder</code> 形式注入</li>
+    <li>用户输入 <code class="ic">/commit</code> 或模型检测到需要某技能时，<code class="ic">SkillTool</code> 加载 <code class="ic">.prompt</code> 文件</li>
+    <li>技能来源可以是本地 <code class="ic">.claude/skills/</code>、bundled 内置技能、MCP 服务器提供的 prompts</li>
+    <li>加载后的技能内容作为消息注入到对话上下文中</li>
+  </ul>
+  <p>官方还支持技能的依赖声明和触发条件匹配。</p>
+</div>
+
+<h3 id="变更对比表-2-2-2-2">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S04（无技能系统）</th><th>S05（Skills）</th></tr>
+  <tr><td>专业知识来源</td><td>只靠模型训练时学到的</td><td>可外挂任意领域知识</td></tr>
+  <tr><td>System prompt 成本</td><td>固定（或全量膨胀）</td><td>只有名称索引，极低</td></tr>
+  <tr><td>知识可维护性</td><td>无法更新模型知识</td><td>修改 .md 文件即可更新</td></tr>
+  <tr><td>知识覆盖范围</td><td>通用但不深</td><td>可针对团队/项目深度定制</td></tr>
+  <tr><td>新增组件</td><td>—</td><td>skill 目录注入 + use_skill 工具 + 文件加载器</td></tr>
+</table>
+
+<div class="callout green">
+  <strong>洞察：</strong>这个两层加载模式和 Claude Code 的 ToolSearch 是同一个设计思想——启动时只暴露名字，使用时才加载完整 schema。整个 Claude Code 架构中反复出现这种「延迟加载」模式，因为上下文窗口是最稀缺的资源。
+</div>
+
+
+<!-- ============================================================ -->
+<!-- S06: Context Compact -->
+<!-- ============================================================ -->
+<h2 id="s06">S06: Context Compact — 三层压缩保持 Agent 不失忆</h2>
+
+<h3 id="这一课解决什么问题-2-2-2-2-2">这一课解决什么问题</h3>
+<p>
+  前 5 课解决了「让 Agent 能做事」的问题，但还有一个致命问题没解决：<strong>messages[] 无限增长</strong>。
+</p>
+<p>
+  每一轮循环都往 messages[] 里追加消息。一个复杂任务可能跑 50 轮，到后面 messages[] 膨胀到 100k+ token。模型处理超长上下文的质量会急剧下降——关键信息被淹没在大量中间过程里，回复变慢、变贵、变蠢。最终可能直接超出上下文窗口限制而报错。
+</p>
+<p>
+  S06 提出<strong>三层渐进式压缩</strong>方案：
+</p>
+
+<h3 id="核心机制-2-2-2-2-2">核心机制</h3>
+
+<div class="diagram">
+  ┌─────────── 三层压缩架构 ───────────────────────────┐
+  │                                                     │
+  │  Layer 1: micro_compact (自动, 每轮)                │
+  │  ═══════════════════════════════════════════         │
+  │  触发: 每次工具调用返回结果后                        │
+  │  做法: 把旧的 tool_result 替换成摘要                 │
+  │                                                     │
+  │  之前: tool_result = "文件内容...3000行代码..."      │
+  │  之后: tool_result = "[已读取 src/auth.ts, 142行,    │
+  │         包含 AuthProvider 类和 3 个方法]"            │
+  │                                                     │
+  │  效果: 单条消息从 ~3000 tokens → ~50 tokens          │
+  │  ─────────────────────────────────────────────       │
+  │                                                     │
+  │  Layer 2: auto_compact (自动, 阈值触发)              │
+  │  ═══════════════════════════════════════════         │
+  │  触发: messages[] 总 token 超过阈值（如 80k）       │
+  │  做法: 调用 LLM 生成整段对话的结构化摘要             │
+  │                                                     │
+  │  ┌─────────────────────────────────────────┐        │
+  │  │ messages = [                             │        │
+  │  │   system_prompt,                         │        │
+  │  │   {role: "user",                         │        │
+  │  │    content: "对话摘要：                   │        │
+  │  │    1. 用户要求重构 auth 模块              │        │
+  │  │    2. 已完成文件结构分析                  │        │
+  │  │    3. 已修改 auth/provider.ts             │        │
+  │  │    4. 待完成：测试更新                    │        │
+  │  │    关键决策：采用策略模式..."},            │        │
+  │  │   ... 最近几轮的原始消息 ...              │        │
+  │  │ ]                                        │        │
+  │  └─────────────────────────────────────────┘        │
+  │                                                     │
+  │  效果: 80k tokens → ~15k tokens                     │
+  │  ─────────────────────────────────────────────       │
+  │                                                     │
+  │  Layer 3: manual compact (手动触发)                  │
+  │  ═══════════════════════════════════════════         │
+  │  触发: 用户输入 /compact 命令                       │
+  │  做法: 同 Layer 2，但可附带自定义指令               │
+  │                                                     │
+  │  例: /compact "只保留 API 设计相关的上下文"         │
+  │                                                     │
+  │  效果: 用户主导的精确压缩                           │
+  └─────────────────────────────────────────────────────┘
+
+  三层关系:
+  ┌──────────┐   ┌──────────┐   ┌──────────┐
+  │ Layer 1  │   │ Layer 2  │   │ Layer 3  │
+  │ 微观     │──▶│ 宏观     │──▶│ 手动     │
+  │ 每轮     │   │ 阈值     │   │ 按需     │
+  │ 局部替换 │   │ 全局摘要 │   │ 精确控制 │
+  │ 无损信息 │   │ 有损压缩 │   │ 用户主导 │
+  └──────────┘   └──────────┘   └──────────┘
+       低                             高
+       ←────── 压缩力度 ──────→
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">micro_compact<span class="tip-text">最轻量的压缩——不调用 LLM，只是用一个规则把旧的 tool_result 内容替换成一句描述。比如读取了一个 500 行的文件，过了 3 轮之后，那个文件内容就被替换成「[已读取 xxx 文件, 500 行]」。因为模型已经看过了，保留完整内容只是浪费。</span></span>
+    — 零成本的垃圾回收。
+  </li>
+  <li>
+    <span class="tip">auto_compact<span class="tip-text">当 messages[] 总 token 超过设定阈值时自动触发。调用 LLM（通常是更便宜的模型或同一模型）生成一段结构化摘要，替换掉大部分历史消息，只保留最近几轮。这是有损压缩——一些细节会丢失。</span></span>
+    — 自动的「大扫除」，用 LLM 做摘要压缩。
+  </li>
+  <li>
+    <span class="tip">manual compact<span class="tip-text">用户通过 /compact 命令手动触发的压缩。可以附带自定义指令告诉 LLM 「只保留什么」「忽略什么」，实现精确的上下文裁剪。</span></span>
+    — 用户拥有最终控制权。
+  </li>
+</ul>
+
+<h3 id="对应到-claude-code-官方的什么-2-2-2-2-2">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">/compact + auto-compact 服务</div>
+  <p>Claude Code 的上下文管理和 S06 高度对应：</p>
+  <ul>
+    <li><strong>/compact 命令</strong> — 用户手动触发上下文压缩（Layer 3）</li>
+    <li><strong>auto-compact</strong> — 当 token 用量超过阈值时自动压缩（Layer 2）</li>
+    <li><strong>tool_result 截断</strong> — 对过大的工具输出自动截断或摘要（类似 Layer 1）</li>
+    <li>压缩时保留：system prompt、最近 N 轮消息、todo 状态、关键决策</li>
+    <li>压缩时丢弃：中间的 tool_result 细节、已解决的讨论、冗余分析</li>
+  </ul>
+</div>
+
+<h3 id="变更对比表-2-2-2-2-2">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S05（无压缩）</th><th>S06（三层压缩）</th></tr>
+  <tr><td>上下文增长</td><td>只增不减，线性增长</td><td>三层控制，维持在阈值内</td></tr>
+  <tr><td>长任务能力</td><td>50+ 轮就会撞墙</td><td>可持续运行数百轮</td></tr>
+  <tr><td>响应质量</td><td>上下文太长时质量下降</td><td>压缩后信噪比更高</td></tr>
+  <tr><td>成本</td><td>每轮 API 调用越来越贵</td><td>压缩后每轮成本可控</td></tr>
+  <tr><td>用户控制</td><td>无</td><td>/compact 命令 + 自定义指令</td></tr>
+  <tr><td>新增组件</td><td>—</td><td>micro_compact + auto_compact + /compact 命令</td></tr>
+</table>
+
+<div class="callout red">
+  <strong>权衡警告：</strong>压缩是有损的。Layer 2 的 LLM 摘要可能丢掉你认为重要的细节。这就是为什么 Layer 3（手动 compact）存在——当自动压缩丢了关键信息时，你可以手动指定保留什么。在实践中，建议在做重大决策前手动 /compact 并明确保留条件。
+</div>
+
+
+<!-- ============================================================ -->
+<!-- 总结 -->
+<!-- ============================================================ -->
+<h2 id="summary">S01-S06 全景回顾</h2>
+
+<p>六节课，六个核心机制，每一个都解决了一个具体的瓶颈：</p>
+
+<div class="diagram">
+  S01 Agent Loop      模型碰不到世界    → while True + stop_reason
+        │
+        ▼
+  S02 Tool Use        bash 不够安全     → dispatch map + safe_path
+        │
+        ▼
+  S03 TodoWrite       多步任务跑偏      → 任务清单 + nag reminder
+        │
+        ▼
+  S04 Subagent        上下文太胖        → 独立 messages[] + 摘要返回
+        │
+        ▼
+  S05 Skills          知识塞满 prompt   → 两层注入（名字 + 按需加载）
+        │
+        ▼
+  S06 Context Compact messages[] 爆炸  → 三层压缩（micro/auto/manual）
+</div>
+
+<table class="tbl">
+  <tr><th>课程</th><th>核心痛点</th><th>核心解法</th><th>官方对应</th><th>新增代码量</th></tr>
+  <tr><td>S01</td><td>模型碰不到真实世界</td><td>while True + stop_reason</td><td>QueryEngine.submitMessage()</td><td>~30 行</td></tr>
+  <tr><td>S02</td><td>Bash 不安全不精确</td><td>dispatch map + safe_path()</td><td>tools.ts 工具注册表</td><td>~40 行</td></tr>
+  <tr><td>S03</td><td>多步任务丢步骤</td><td>TodoManager + nag reminder</td><td>TodoWriteTool</td><td>~50 行</td></tr>
+  <tr><td>S04</td><td>中间过程膨胀上下文</td><td>独立 messages[] + 摘要返回</td><td>AgentTool</td><td>~30 行</td></tr>
+  <tr><td>S05</td><td>知识全量占用 prompt</td><td>名字索引 + 按需加载</td><td>SkillTool + skill loading</td><td>~40 行</td></tr>
+  <tr><td>S06</td><td>messages[] 无限增长</td><td>三层渐进式压缩</td><td>/compact + auto-compact</td><td>~60 行</td></tr>
+</table>
+
+<div class="callout">
+  <strong>最重要的收获：</strong>Claude Code 不是魔法。它是这六个简单机制的工程化堆叠。理解了这些基础，你就能看透任何 AI Agent 框架的架构——因为它们解决的都是同样的问题。
+</div>
+
+</div>
+</div></body>
+</html>

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>子系统全景 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {h:"pages/architecture.html",t:"\u8fd0\u884c\u65f6\u67b6\u6784",b:"ARCH"},
+    {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+    {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+    {h:"pages/context-permissions.html",t:"\u4e0a\u4e0b\u6587\u4e0e\u6743\u9650"},
+    {h:"pages/kairos.html",t:"KAIROS \u6df1\u5ea6\u62c6\u89e3",b:"\u2605"},
+    {h:"pages/systems-overview.html",t:"\u5b50\u7cfb\u7edf\u5168\u666f",b:"20+"}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/></svg></button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/></svg></button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$</span> Claude Code \u5b66\u4e60\u624b\u518c</a>'
+  +'<div class="header-spacer"></div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search</button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light</button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875</a></div><div class="sidebar-divider"></div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'</div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      // Sub-group: check if any child is active
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'</div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'</span>':'')+'</a>';
+      });
+      sh+='</div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'</span>':'')+'</a>';
+    }
+  });
+  sh+='</div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle: simple show/hide via header button
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false,false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden,true);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){
+    sb.classList.remove('hidden');
+    document.body.classList.remove('sidebar-off');
+    if(btn)btn.classList.remove('collapsed');
+  }else{
+    sb.classList.add('hidden');
+    document.body.classList.add('sidebar-off');
+    if(btn)btn.classList.add('collapsed');
+  }
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  // Collect outline: h2, h3, and <details> with id or containing summary with code/strong
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){
+      items.push({level:2,id:el.id,text:el.textContent.trim(),el:el});
+    } else if(el.tagName==="H3"){
+      items.push({level:3,id:el.id,text:el.textContent.trim(),el:el});
+    } else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");
+      if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();
+      if(txt.length<3)return;
+      // use existing id or generate one
+      var did=el.id;
+      if(!did){
+        did="d-"+items.length;
+        el.id=did;
+      }
+      // truncate for toc display
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");
+    rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2</div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='</div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'</a>';
+        th+='<div class="toc-children">';
+        inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'</a>';
+      }
+    });
+    if(inGroup)th+='</div>';
+    rt.innerHTML=th;
+    document.body.appendChild(rt);
+    // scroll spy
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          tocAll.forEach(function(l){l.classList.remove("active")});
+          var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+          if(m){
+            m.classList.add("active");
+            var p=m.closest(".toc-children");
+            if(p)p.classList.add("expanded");
+            // Smoothly scroll TOC panel to keep active item visible
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});
+          }
+        }
+      });
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    // click h2 to toggle
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(e){
+        var nx=a.nextElementSibling;
+        if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded");
+      });
+    });
+    // expand first group
+    var fg=rt.querySelector(".toc-children");
+    if(fg)fg.classList.add("expanded");
+
+    // Mobile TOC: FAB button + drawer
+    var fab=document.createElement("button");
+    fab.className="toc-fab";fab.textContent="\u2630";
+    fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){
+        // Clone TOC as drawer
+        drt=rt.cloneNode(true);
+        drt.id="drawerToc";
+        drt.classList.add("as-drawer");
+        drt.classList.remove("right-toc");
+        drt.className="right-toc as-drawer";
+        // Add close button
+        var cl=document.createElement("div");
+        cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed\u5927\u7eb2";
+        cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);
+        document.body.appendChild(drt);
+        var dov=document.createElement("div");
+        dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");
+      drt.classList.toggle("open");
+      dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);
+updBtn(saved);
+window.toggleTheme=function(){
+  var c=document.documentElement.getAttribute("data-theme")||"dark";
+  var n=c==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",n);
+  localStorage.setItem("theme",n);updBtn(n);
+};
+function updBtn(t){
+  var b=document.querySelector(".theme-toggle");
+  if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark";
+}
+
+// ---- Sidebar toggle ----
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Global Search ----
+window.openSearch=function(){
+  if(document.getElementById("searchModal"))return;
+  var m=document.createElement("div");m.id="searchModal";m.className="search-modal";
+  m.innerHTML='<div class="search-backdrop" onclick="closeSearch()"></div>'
+    +'<div class="search-box">'
+    +'<input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus />'
+    +'<div id="searchResults" class="search-results"></div>'
+    +'<div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c</div>'
+    +'</div>';
+  document.body.appendChild(m);
+  setTimeout(function(){m.classList.add("open")},10);
+  var inp=document.getElementById("searchInput");
+  inp.addEventListener("input",doSearch);
+  inp.addEventListener("keydown",function(e){
+    if(e.key==="Escape")closeSearch();
+    if(e.key==="Enter"){
+      var first=document.querySelector(".search-result-item");
+      if(first)first.click();
+    }
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();
+      var items=document.querySelectorAll(".search-result-item");
+      var cur=document.querySelector(".search-result-item.focused");
+      var idx=-1;
+      items.forEach(function(it,i){if(it===cur)idx=i});
+      if(e.key==="ArrowDown")idx=Math.min(idx+1,items.length-1);
+      else idx=Math.max(idx-1,0);
+      items.forEach(function(it){it.classList.remove("focused")});
+      if(items[idx]){items[idx].classList.add("focused");items[idx].scrollIntoView({block:"nearest"})}
+    }
+  });
+};
+window.closeSearch=function(){
+  var m=document.getElementById("searchModal");
+  if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}
+};
+document.addEventListener("keydown",function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}
+});
+
+// Search index: collect all text content
+var PAGES=[
+  {u:B+"index.html",t:"\u9996\u9875"},
+  {u:B+"pages/architecture.html",t:"\u8fd0\u884c\u65f6\u67b6\u6784"},
+  {u:B+"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3"},
+  {u:B+"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c"},
+  {u:B+"pages/context-permissions.html",t:"\u4e0a\u4e0b\u6587\u4e0e\u6743\u9650"},
+  {u:B+"pages/learn-s01.html",t:"S01 Agent Loop \u57fa\u7840"},
+  {u:B+"pages/learn-s02.html",t:"S02 Tool Use \u5de5\u5177"},
+  {u:B+"pages/learn-s03.html",t:"S03 TodoWrite \u8ba1\u5212"},
+  {u:B+"pages/learn-s04.html",t:"S04 Subagent \u5b50\u4ee3\u7406"},
+  {u:B+"pages/learn-s05.html",t:"S05 Skill Loading \u6280\u80fd"},
+  {u:B+"pages/learn-s06.html",t:"S06 Context Compact \u538b\u7f29"},
+  {u:B+"pages/learn-s07.html",t:"S07 Task System \u4efb\u52a1"},
+  {u:B+"pages/learn-s08.html",t:"S08 Background Tasks \u540e\u53f0"},
+  {u:B+"pages/learn-s09.html",t:"S09 Agent Teams \u56e2\u961f"},
+  {u:B+"pages/learn-s10.html",t:"S10 Team Protocols \u534f\u8bae"},
+  {u:B+"pages/learn-s11.html",t:"S11 Autonomous Agents \u81ea\u7ec4\u7ec7"},
+  {u:B+"pages/learn-s12.html",t:"S12 Worktree Isolation \u9694\u79bb"},
+  {u:B+"pages/glossary.html",t:"\u672f\u8bed\u8868"},
+  {u:B+"pages/systems-overview.html",t:"\u5b50\u7cfb\u7edf\u5168\u666f Buddy Voice Coordinator Remote"},
+  {u:B+"pages/kairos.html",t:"KAIROS \u9f99\u867e Proactive Coordinator Brief Dream Assistant"}
+];
+
+function doSearch(){
+  var q=document.getElementById("searchInput").value.trim().toLowerCase();
+  var res=document.getElementById("searchResults");
+  if(!q){res.innerHTML="";return}
+  // Search current page headings + details summaries
+  var hits=[];
+  var pw2=document.querySelector(".page-wrap");
+  if(pw2){
+    pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){
+      var txt=el.textContent||"";
+      if(txt.toLowerCase().indexOf(q)>-1){
+        var id=el.id||el.closest("[id]")?.id||"";
+        hits.push({text:txt.substring(0,120),id:id,local:true});
+      }
+    });
+  }
+  // Also show page-level matches
+  PAGES.forEach(function(pg){
+    if(pg.t.toLowerCase().indexOf(q)>-1){
+      hits.push({text:pg.t,url:pg.u,local:false});
+    }
+  });
+  // Deduplicate and limit
+  var seen=new Set();
+  var html="";var count=0;
+  hits.forEach(function(h){
+    if(count>=12)return;
+    var key=h.text.substring(0,50);
+    if(seen.has(key))return;seen.add(key);count++;
+    if(h.local&&h.id){
+      html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">'
+        +'<span class="sr-type">\u672c\u9875</span>'+esc(h.text)+'</div>';
+    } else if(!h.local){
+      html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'">'
+        +'<span class="sr-type">\u9875\u9762</span>'+esc(h.text)+'</div>';
+    }
+  });
+  if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c</div>';
+  res.innerHTML=html;
+}
+function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag official">OFFICIAL SOURCE ANALYSIS</div>
+<h1>子系统<em>全景</em> — 从 Buddy 到 Voice 的完整功能图谱</h1>
+<p class="subtitle">
+  Claude Code 不仅仅是一个终端里的 AI 编程助手——它是一个由 20+ 独立子系统协同工作的复合平台。本页覆盖所有不被其他专题页深入讨论的子系统，帮助你建立对整个代码库功能全貌的认知。
+</p>
+
+<div class="callout">
+  <strong>阅读建议：</strong>本页是一份全景参考手册。你无需从头到尾线性阅读，可以直接跳转到你感兴趣的子系统。每个章节都是自包含的，但它们之间的交叉引用会帮助你理解子系统间的协作关系。
+</div>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-block gold">用户体验层</div>
+    <div class="layer-block gold">Buddy / Ink UI / Vim / Keybindings</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block blue">交互模态层</div>
+    <div class="layer-block blue">Voice / Deep Link / Prompt Suggestion</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block green">执行模态层</div>
+    <div class="layer-block green">Coordinator / Remote / Proactive / DAEMON</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block purple">扩展与集成层</div>
+    <div class="layer-block purple">Bridge / Plugin / Skills / MCP</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block red">平台基础层</div>
+    <div class="layer-block red">Memory / Analytics / Policy / Schemas / Migrations</div>
+  </div>
+</div>
+
+<!-- ==================== 1. Buddy ==================== -->
+<h2 id="buddy">Buddy 电子宠物系统 — 源码级完整拆解</h2>
+
+<p>在 Claude Code 的源码里，藏着一个完整的<strong>电子宠物系统</strong>。一个坐在终端输入框旁边的 ASCII 小动物，会对你的对话做出反应，偶尔冒出气泡说两句。有 18 个物种、5 级稀有度、RPG 属性、帽子系统，还能撸——撸了会飘爱心。它叫 <strong>Buddy</strong>，计划在 2026 年 4 月 1 日作为愚人节彩蛋上线。</p>
+
+<p>整个系统由 <code class="ic">src/buddy/</code> 目录下的 6 个文件组成，总代码量并不大，但设计精巧得令人惊叹。这里是对每一个细节的完整拆解。</p>
+
+<h3 id="buddy-arch">整体架构：五层分工</h3>
+
+<table class="tbl">
+  <tr><th>文件</th><th>职责</th><th>关键机制</th></tr>
+  <tr><td><code class="ic">types.ts</code></td><td>数据结构与常量</td><td>18 物种、5 稀有度、6 眼睛、8 帽子、5 属性的完整定义</td></tr>
+  <tr><td><code class="ic">companion.ts</code></td><td>确定性生成算法</td><td>Mulberry32 PRNG + FNV-1a 哈希 + 骨架/灵魂分离</td></tr>
+  <tr><td><code class="ic">sprites.ts</code></td><td>ASCII 渲染引擎</td><td>18×3=54 帧精灵画、帽子叠加、眼睛替换</td></tr>
+  <tr><td><code class="ic">CompanionSprite.tsx</code></td><td>React 动画组件</td><td>500ms tick、15 帧空闲序列、气泡、爱心</td></tr>
+  <tr><td><code class="ic">prompt.ts</code></td><td>AI 集成</td><td>「礼让协议」——告诉主 AI 不要扮演宠物</td></tr>
+  <tr><td><code class="ic">useBuddyNotification.tsx</code></td><td>发现设计</td><td>4 月 1-7 日彩虹提示、/buddy 触发检测</td></tr>
+</table>
+
+<p>核心设计思路：宠物的<strong>外观由你的用户 ID 决定</strong>（确定性生成），<strong>性格由 AI 取名</strong>（LLM 生成）。前者不存储，后者永久保存。</p>
+
+<h3 id="buddy-species">18 个物种</h3>
+
+<p>每种动物是一组 5 行高 × 12 字符宽的 ASCII 画，带 3 帧动画（静止、抖动 1、抖动 2）。完整列表：</p>
+
+<div class="grid-2">
+<div class="card">
+<div class="card-title">动物列表</div>
+<p>Duck（鸭子）、Goose（鹅）、Blob（果冻怪）、Cat（猫）、Dragon（龙）、Octopus（章鱼）、Owl（猫头鹰）、Penguin（企鹅）、Turtle（乌龟）、Snail（蜗牛）、Ghost（幽灵）、Axolotl（六角恐龙）、Capybara（水豚）、Cactus（仙人掌）、Robot（机器人）、Rabbit（兔子）、Mushroom（蘑菇）、Chonk（胖橘）</p>
+</div>
+<div class="card">
+<div class="card-title">Face 表情（窄终端时显示）</div>
+<p>
+Duck: <code class="ic">(°&gt;</code> · Cat: <code class="ic">=°ω°=</code> · Dragon: <code class="ic">&lt;°~°&gt;</code><br>
+Octopus: <code class="ic">~(°°)~</code> · Ghost: <code class="ic">/°°\</code> · Robot: <code class="ic">[°°]</code><br>
+Capybara: <code class="ic">(°oo°)</code> · Axolotl: <code class="ic">}°.°{</code> · Chonk: <code class="ic">(°.°)</code>
+</p>
+</div>
+</div>
+
+<div class="callout blue">
+  <strong>为什么物种名要加密？</strong>所有 18 个物种名都不是直接写的字符串，而是用 <code class="ic">String.fromCharCode()</code> 编码。比如 <code class="ic">capybara</code> 写成 <code class="ic">c(0x63,0x61,0x70,0x79,0x62,0x61,0x72,0x61)</code>。原因是 <code class="ic">capybara</code> 是 Anthropic 内部的模型代号之一，直接写在代码里会触发构建时的安全扫描。为了统一风格，所有 18 个物种名都用了这种方式。写代码写到要给动物名字加密，也是头一回见。
+</div>
+
+<h3 id="buddy-rarity">五级稀有度系统</h3>
+
+<table class="tbl">
+  <tr><th>稀有度</th><th>概率</th><th>星级</th><th>颜色</th><th>属性下限</th><th>帽子</th></tr>
+  <tr><td>Common（普通）</td><td><strong>60%</strong></td><td>★</td><td>灰色 (inactive)</td><td>5</td><td>无</td></tr>
+  <tr><td>Uncommon（稀有）</td><td>25%</td><td>★★</td><td>绿色 (success)</td><td>15</td><td>随机</td></tr>
+  <tr><td>Rare（珍稀）</td><td>10%</td><td>★★★</td><td>蓝色 (permission)</td><td>25</td><td>随机</td></tr>
+  <tr><td>Epic（史诗）</td><td>4%</td><td>★★★★</td><td>青色 (autoAccept)</td><td>35</td><td>随机</td></tr>
+  <tr><td>Legendary（传说）</td><td><strong>1%</strong></td><td>★★★★★</td><td>橙色 (warning)</td><td>50</td><td>随机</td></tr>
+</table>
+
+<p>稀有度通过<strong>权重轮盘算法</strong>决定：把所有权重加起来（60+25+10+4+1=100），生成一个 0-100 的随机数，依次减去每级的权重，第一个使结果变负的等级就是你的稀有度。</p>
+
+<p>还有一个隐藏属性——<strong>Shiny（闪光）</strong>，所有稀有度均为 <strong>1%</strong> 概率触发。Shiny + Legendary = <strong>0.01%</strong>，万分之一的终极稀有组合。</p>
+
+<h3 id="buddy-bones-soul">核心设计：Bones/Soul 分离</h3>
+
+<p>这是整个系统最精巧的架构决策。一个宠物由两部分组成：</p>
+
+<div class="grid-2">
+<div class="card">
+  <div class="card-title" style="color:var(--accent-gold)">CompanionBones（骨架）— 确定性，不存储</div>
+  <ul>
+    <li><code class="ic">rarity</code> — 稀有度</li>
+    <li><code class="ic">species</code> — 物种</li>
+    <li><code class="ic">eye</code> — 眼睛样式（6 种：·, ✦, ×, ◉, @, °）</li>
+    <li><code class="ic">hat</code> — 帽子（8 种：none, crown, tophat, propeller, halo, wizard, beanie, tinyduck）</li>
+    <li><code class="ic">shiny</code> — 是否闪光</li>
+    <li><code class="ic">stats</code> — 5 项 RPG 属性</li>
+  </ul>
+  <p>从 <code class="ic">hash(userId + salt)</code> 确定性生成。<strong>每次启动 Claude Code 都重新算一遍</strong>，永远不写入磁盘。</p>
+</div>
+<div class="card">
+  <div class="card-title" style="color:var(--accent-blue)">CompanionSoul（灵魂）— LLM 生成，永久存储</div>
+  <ul>
+    <li><code class="ic">name</code> — 名字（如 "Noodle"）</li>
+    <li><code class="ic">personality</code> — 性格描述</li>
+    <li><code class="ic">hatchedAt</code> — 孵化时间戳</li>
+  </ul>
+  <p>孵化时由 LLM 一次性生成，永久存储在 <code class="ic">~/.claude/config.json</code> 中。</p>
+</div>
+</div>
+
+<div class="callout green">
+  <strong>为什么 Bones 不存储？三个原因：</strong><br>
+  <strong>1. 防作弊</strong> — 你没法通过编辑配置文件把自己的宠物改成 Legendary，因为稀有度根本不存在于配置文件里。<br>
+  <strong>2. 防损坏</strong> — 开发者可以安全地重命名物种或调整数组顺序，不会破坏已有宠物。<br>
+  <strong>3. 简化存储</strong> — 只需要存两个字符串（名字和性格），其余全部按需重算。
+</div>
+
+<h3 id="buddy-algorithm">确定性生成算法</h3>
+
+<p>整个生成过程基于一条链：<code class="ic">userId</code> → <strong>哈希</strong> → <strong>种子</strong> → <strong>PRNG</strong> → <strong>所有属性</strong>。</p>
+
+<h4>Hash 函数</h4>
+<ul>
+  <li><strong>Bun 运行时</strong>：使用原生 <code class="ic">Bun.hash()</code></li>
+  <li><strong>其他运行时</strong>：FNV-1a 32 位哈希（初始值 <code class="ic">2166136261</code>，每个字符 XOR 后乘以 <code class="ic">16777619</code>，最终掩码为 32 位无符号整数）</li>
+</ul>
+
+<h4>Salt 值</h4>
+<p><code class="ic">'friend-2026-401'</code> — 拼接在 userId 后面再哈希，防止与其他系统的哈希结果碰撞。</p>
+
+<h4>Mulberry32 PRNG</h4>
+<p>源码注释写道：<em>"tiny seeded PRNG, good enough for picking ducks"</em>（微型种子 PRNG，选鸭子够用了）。魔法常数 <code class="ic">0x6d2b79f5</code>，输出一个确定性的 [0, 1) 浮点数。同一个 seed 永远产生同一个序列。</p>
+
+<h4>完整的 roll() 流程</h4>
+<div class="diagram">roll(userId):
+  1. seed = hash(userId + 'friend-2026-401')
+  2. rng = Mulberry32(seed)
+  3. rarity = rollRarity(rng)     // 权重轮盘: 60/25/10/4/1
+  4. stats = rollStats(rng, rarity)  // 5 项属性
+  5. species = pick(SPECIES, rng)    // 18 选 1
+  6. eye = pick(EYES, rng)           // 6 选 1
+  7. hat = pick(HATS, rng)           // 8 选 1（Common 强制 none）
+  8. shiny = rng() &lt; 0.01           // 1% 闪光概率
+  9. inspirationSeed = floor(rng() × 1e9)  // 灵魂生成用
+  → return { bones, inspirationSeed }</div>
+
+<p><strong>缓存策略</strong>：单条目缓存 <code class="ic">rollCache = { key, value }</code>。因为这个函数会从 3 个热路径调用（500ms tick、按键、turn observer），但 userId 在会话内不变，所以只缓存一个条目就够了。</p>
+
+<h3 id="buddy-stats">RPG 属性系统</h3>
+
+<p>每只宠物有 5 项属性，取名很有 Anthropic 的味道：</p>
+
+<table class="tbl">
+  <tr><th>属性</th><th>含义</th><th>范围</th></tr>
+  <tr><td><strong>DEBUGGING</strong></td><td>调试能力</td><td>1-100</td></tr>
+  <tr><td><strong>PATIENCE</strong></td><td>耐心</td><td>1-100</td></tr>
+  <tr><td><strong>CHAOS</strong></td><td>混乱值</td><td>1-100</td></tr>
+  <tr><td><strong>WISDOM</strong></td><td>智慧</td><td>1-100</td></tr>
+  <tr><td><strong>SNARK</strong></td><td>毒舌值</td><td>1-100</td></tr>
+</table>
+
+<h4>属性生成机制</h4>
+<p>每只宠物有一个<strong>峰值属性</strong>（最高值）和一个<strong>垃圾属性</strong>（最低值），其余三个为<strong>散布属性</strong>（中间值）。稀有度决定所有属性的下限（floor）：</p>
+
+<div class="diagram">对于每个属性:
+  峰值 = min(100, floor + 50 + random(0-30))   // 通常 55-100
+  垃圾 = max(1, floor - 10 + random(0-15))     // 最低可到 1
+  散布 = floor + random(0-40)                    // 中间范围
+
+举例:
+  Legendary (floor=50):  峰值 ~80-100, 垃圾 ~40-55, 散布 ~50-90
+  Common (floor=5):      峰值 ~55-85,  垃圾 ~1-10,  散布 ~5-45</div>
+
+<h3 id="buddy-visual">视觉系统</h3>
+
+<h4>8 种帽子的 ASCII 图案</h4>
+<div class="diagram">crown:     \^^^/       皇冠
+tophat:    [___]       礼帽
+propeller:  -+-        螺旋桨
+halo:      (   )       光环
+wizard:     /^\        巫师帽
+beanie:    (___)       毛线帽
+tinyduck:   ,&gt;         头顶小鸭子
+none:      (空)        无帽子（Common 专属）</div>
+
+<p>帽子叠加在精灵的第 0 行（最顶部）。只有当该行为空白时才会叠加——如果精灵自带烟雾或触角等顶部装饰，帽子不会覆盖。如果所有 3 帧的第 0 行都是空白且没有帽子，该行会被裁掉（防止高度在动画中跳动）。</p>
+
+<h4>眼睛系统</h4>
+<p>6 种眼睛样式：<code class="ic">·</code> <code class="ic">✦</code> <code class="ic">×</code> <code class="ic">◉</code> <code class="ic">@</code> <code class="ic">°</code>。精灵模板中使用 <code class="ic">{E}</code> 占位符，渲染时全部替换为抽到的眼睛字符。</p>
+
+<h3 id="buddy-animation">动画系统</h3>
+
+<h4>空闲动画循环</h4>
+<div class="diagram">IDLE_SEQUENCE = [0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 2, 0, 0, 0]
+                 ↑静止  ↑静止  ↑抖1 ↑静止   ↑眨眼 ↑静止  ↑抖2 ↑静止
+
+总长: 15 帧 × 500ms = 7.5 秒一个完整周期
+帧 -1 的含义: 用帧 0 但把所有眼睛字符替换为 '-'（闭眼）</div>
+
+<h4>兴奋模式</h4>
+<p>当宠物在说话（有气泡）或被撸（<code class="ic">/buddy pet</code>）时，切换到快速动画模式——用 <code class="ic">tick % frameCount</code> 循环所有帧，产生快速抖动效果。</p>
+
+<h4>/buddy pet 爱心飘升</h4>
+<div class="diagram">PET_HEARTS（5 帧 × 500ms = 2.5 秒）:
+  帧 0:    ♥    ♥      // 两颗心分开
+  帧 1:   ♥  ♥   ♥     // 三颗心聚拢
+  帧 2:  ♥   ♥  ♥      // 上升
+  帧 3: ♥  ♥      ♥    // 扩散
+  帧 4: ·    ·   ·     // 消散为小点
+
+颜色: cyan (autoAccept)
+位置: 叠加在精灵头顶</div>
+
+<h3 id="buddy-bubble">气泡与交互系统</h3>
+
+<table class="tbl">
+  <tr><th>参数</th><th>值</th><th>说明</th></tr>
+  <tr><td>TICK_MS</td><td>500ms</td><td>基础动画间隔</td></tr>
+  <tr><td>BUBBLE_SHOW</td><td>20 ticks = 10 秒</td><td>气泡显示时长</td></tr>
+  <tr><td>FADE_WINDOW</td><td>6 ticks = 3 秒</td><td>气泡淡出时长</td></tr>
+  <tr><td>PET_BURST_MS</td><td>2500ms</td><td>爱心飘升时长</td></tr>
+</table>
+
+<h4>终端响应式布局</h4>
+<ul>
+  <li><strong>宽终端（≥100 列）</strong>：完整精灵（5行12字符）+ 侧边气泡（带圆角边框，34 字符宽）</li>
+  <li><strong>窄终端（&lt;100 列）</strong>：单行 face 表情 + 简短引用文本</li>
+  <li><strong>全屏模式</strong>：精灵正常渲染，气泡浮动到 <code class="ic">bottomFloat</code> slot（通过 <code class="ic">CompanionFloatingBubble</code> 组件），避免滚动区域裁切</li>
+</ul>
+
+<p><code class="ic">companionReservedColumns()</code> 函数计算精灵+气泡需要的列宽，<code class="ic">PromptInput</code> 据此调整输入框的换行位置。如果 Buddy 被静音、未孵化、或终端太窄，返回 0。</p>
+
+<h3 id="buddy-discovery">渐进式发现设计</h3>
+
+<p><strong>4 月 1 日零点</strong>（你的本地时间），Claude Code 启动时会在状态栏闪现一个 15 秒的彩虹色 <code class="ic">/buddy</code> 提示。如果你好奇地输入了，就会进入孵化流程。<strong>4 月 7 日之后</strong>提示消失，但 <code class="ic">/buddy</code> 命令永久可用。</p>
+
+<div class="callout">
+  <strong>为什么用本地时区而非 UTC？</strong>源码注释解释：<em>"24h rolling wave across timezones. Sustained Twitter buzz instead of a single UTC-midnight spike, gentler on soul-gen load."</em> 不同时区的用户在各自的 4 月 1 日发现彩蛋，社交媒体讨论会持续 24 小时而非集中在 UTC 午夜。同时平滑了 LLM 生成宠物性格的 API 调用负载。一个愚人节彩蛋，连流量分布都想好了。
+</div>
+
+<h3 id="buddy-ai">AI 的「礼让协议」</h3>
+
+<p>宠物和主 AI 是<strong>独立的两个实体</strong>。源码中注入给主 AI 的 prompt：</p>
+
+<div class="card">
+  <p><em>"A small [SPECIES] named [NAME] sits beside the user's input box and occasionally comments in a speech bubble. You're not [NAME] — it's a separate watcher.</em></p>
+  <p><em>When the user addresses [NAME] directly (by name), its bubble will answer. Your job in that moment is to stay out of the way: respond in ONE line or less, or just answer any part of the message meant for you. Don't explain that you're not [NAME] — they know. Don't narrate what [NAME] might say — the bubble handles that."</em></p>
+</div>
+
+<p>这种「AI 之间的礼让协议」在 prompt 工程里可能是第一次见。只在第一次会话时注入（通过检查消息历史中是否已有 <code class="ic">companion_intro</code> 类型的 attachment），避免重复。</p>
+
+<h3 id="buddy-insights">设计亮点总结</h3>
+
+<table class="tbl">
+  <tr><th>决策</th><th>机制</th><th>效果</th></tr>
+  <tr><td>确定性 + 不可伪造</td><td>userId 哈希决定一切，配置文件里找不到可以改的数据</td><td>同一用户永远同一只宠物，且无法作弊</td></tr>
+  <tr><td>骨架/灵魂分离</td><td>计算的归计算，创造的归创造</td><td>代码可以安全更新物种列表而不破坏存量宠物</td></tr>
+  <tr><td>渐进式发现</td><td>彩虹提示 → 好奇输入 → 孵化惊喜</td><td>不强制不打扰，让用户自己发现彩蛋</td></tr>
+  <tr><td>不干扰工作</td><td>气泡 10 秒消失，可静音，窄终端自动简化</td><td>工具属性优先，宠物永远不会挡住工作</td></tr>
+  <tr><td>跨时区滚动发布</td><td>本地时区判定，24 小时滚动波</td><td>社交传播 + 负载平滑一箭双雕</td></tr>
+  <tr><td>防安全扫描编码</td><td>String.fromCharCode 编码物种名</td><td>绕过 Anthropic 内部的代号扫描规则</td></tr>
+</table>
+
+<!-- ==================== 2. Voice ==================== -->
+<h2 id="voice">2. Voice 语音模式</h2>
+
+<p>
+  Voice 模式让 Claude Code 从纯文本交互扩展到语音交互。用户可以通过 <code class="ic">/voice</code> 命令切换到语音模式，此时终端会开始录制麦克风音频，录制完成后通过 STT（Speech-to-Text，语音转文字）引擎将语音转换为文本输入，然后按照正常流程发送给模型处理。
+</p>
+
+<p>
+  语音模式的启用受到多重门控。首先，它需要对应的 <strong>Feature Flag</strong> 处于开启状态——这意味着它可能仍处于灰度发布阶段，并非所有用户都能看到。其次，它需要通过 <strong>OAuth 认证门控</strong>，确保用户有权限使用语音服务（可能涉及额外的服务端资源和成本）。
+</p>
+
+<p>
+  Voice 还支持 <strong>Voice Keywords</strong>——一组预定义的语音关键词或唤醒词，用于快速触发特定操作。例如，用户可以通过说出特定词语来停止录制、取消操作或切换回文本模式，而无需在键盘上操作。
+</p>
+
+<div class="card">
+  <div class="card-title">Voice 模式的工作流程</div>
+  <div class="flow">
+    <span class="flow-node">用户说 /voice</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">Feature Flag 检查</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">OAuth 验证</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">麦克风录制</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">STT 转写</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-node">文本输入处理</span>
+  </div>
+</div>
+
+<details>
+<summary><strong>Voice Keywords 与语音控制</strong></summary>
+<div class="details-body">
+<p>Voice Keywords 是一种辅助机制，允许用户在语音模式下通过特定词语与系统交互。它与主模型推理分离，更像是一个本地的关键词匹配层，用于控制录制状态和基础操作。这种设计确保了即使在模型响应延迟时，用户仍然可以通过语音控制系统行为。</p>
+</div>
+</details>
+
+<!-- ==================== 3. Coordinator ==================== -->
+<h2 id="coordinator">3. Coordinator 多 Agent 协调模式</h2>
+
+<p>
+  Coordinator 是 Claude Code 中的多 Agent 协调系统。当一个任务足够复杂时，单个 Agent 可能不足以高效完成——Coordinator 模式允许一个"Team Lead"角色的 Agent 将任务分解为子任务，并分配给多个"Worker"Agent 并行执行。
+</p>
+
+<p>
+  Coordinator 与 <strong>Agent Teams / Swarms</strong> 是相关但不同的概念。Swarms 更强调去中心化的自组织协作，多个 Agent 根据任务自主领取工作；而 Coordinator 更像一个层级化的管理模型——有一个明确的 Team Lead 负责任务分配、进度追踪和结果汇总。在实际实现中，Coordinator 可能是 Swarms 的一种特定配置模式。
+</p>
+
+<p>
+  <strong>Agent Summary 服务</strong>是 Coordinator 的关键组件。每个 Worker Agent 完成子任务后会生成一份摘要，Agent Summary 服务将这些摘要整合成一份统一的进度报告，供 Team Lead 进行下一步决策。这避免了 Team Lead 需要读取每个 Worker 的完整上下文，大幅降低了 token 消耗。
+</p>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">Coordinator 模式</div>
+    <p>层级化管理，Team Lead 分配任务，Worker 执行并汇报。适合有明确分工的复杂项目。</p>
+    <div class="tags"><span class="tag">Team Lead</span><span class="tag">任务分配</span><span class="tag">进度汇总</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Swarms 模式</div>
+    <p>去中心化协作，多个 Agent 自主认领任务。适合探索性或高度并行的工作。</p>
+    <div class="tags"><span class="tag">自组织</span><span class="tag">并行探索</span><span class="tag">动态分工</span></div>
+  </div>
+</div>
+
+<details>
+<summary><strong>Coordinator 任务分配流程</strong></summary>
+<div class="details-body">
+<div class="diagram">Team Lead 接收用户请求
+│
+├─→ 任务分析与分解
+│   将复杂任务拆分为可独立执行的子任务
+│
+├─→ Worker 分配
+│   每个子任务指定一个 Worker Agent
+│   Worker 拥有独立的上下文和工具访问
+│
+├─→ 并行执行
+│   多个 Worker 同时工作
+│   各自在隔离的沙箱中运行
+│
+├─→ Agent Summary 汇总
+│   收集各 Worker 的完成摘要
+│   整合为统一进度视图
+│
+└─→ Team Lead 决策
+    基于汇总结果决定下一步
+    可能继续分配、合并或报告给用户</div>
+</div>
+</details>
+
+<!-- ==================== 4. Remote ==================== -->
+<h2 id="remote">4. Remote 远程执行</h2>
+
+<p>
+  Remote 系统让 Claude Code 能够在远程环境中执行操作，而不仅限于本地终端。这对于在服务器上运行构建、在云端开发环境中工作或者在沙箱中执行危险操作等场景至关重要。Remote 包含多种模式，各有其适用场景。
+</p>
+
+<h3 id="remote-session">Remote Session（SSH 隧道）</h3>
+<p>
+  最基础的远程模式。Claude Code 通过 SSH 隧道连接到远程机器，并在远程环境中执行命令。远程环境拥有自己的文件系统和进程空间，Claude Code 的工具调用（如 Bash、Read、Write）会被转发到远程机器执行。SSH 连接的建立、保活和重连都由系统自动管理，用户只需要提供远程主机信息。
+</p>
+
+<h3 id="teleport">Teleport（远程环境传送）</h3>
+<p>
+  Teleport 是一种更高级的远程模式。它不仅仅是连接到远程机器，而是将本地的开发上下文"传送"到远程环境。这包括当前的工作目录状态、环境变量和会话信息。Teleport 的目标是让远程执行感觉像本地执行一样无缝。传送完成后，远程环境的状态会与本地保持同步，直到会话结束。
+</p>
+
+<h3 id="remote-websocket">WebSocket 轮询</h3>
+<p>
+  对于需要持续通信的远程会话，系统使用 WebSocket 连接维持实时双向通信。当 WebSocket 不可用时（如防火墙限制），会降级到 HTTP 长轮询模式。这种弹性设计确保了在各种网络条件下远程功能都能正常工作。WebSocket 的心跳机制会检测连接断开并自动重连，保证长时间运行的远程任务不会因为网络抖动而丢失。
+</p>
+
+<details>
+<summary><strong>Remote Control / Bridge 模式的关系</strong></summary>
+<div class="details-body">
+<table class="tbl">
+  <tr><th>模式</th><th>通信方式</th><th>场景</th><th>特点</th></tr>
+  <tr><td>Remote Session</td><td>SSH 隧道</td><td>远程服务器开发</td><td>标准远程执行</td></tr>
+  <tr><td>Teleport</td><td>环境快照传送</td><td>云端沙箱</td><td>无缝上下文切换</td></tr>
+  <tr><td>Remote Control</td><td>WebSocket/HTTP</td><td>远程协助</td><td>外部控制本地实例</td></tr>
+  <tr><td>Bridge</td><td>JWT + IPC</td><td>IDE 集成</td><td>双向消息协议</td></tr>
+</table>
+<p><strong>remote-safe 命令过滤</strong>：在远程模式下，某些命令会被标记为不安全或不适用。系统维护一个 <code class="ic">remote-safe</code> 过滤列表，只允许经过审核的命令在远程环境中执行，防止意外操作影响远程生产环境。</p>
+</div>
+</details>
+
+<!-- ==================== 5. Bridge ==================== -->
+<h2 id="bridge">5. Bridge IDE 集成</h2>
+
+<p>
+  Bridge 是 Claude Code 与 IDE（VS Code、JetBrains 等）之间的通信桥梁。它允许 IDE 扩展与 Claude Code 的核心进程进行双向通信，实现诸如在编辑器内显示 AI 建议、从 IDE 上下文发起操作等功能。
+</p>
+
+<p>
+  Bridge 的安全性通过 <strong>JWT（JSON Web Token）身份验证</strong>保障。每次 IDE 扩展连接到 Claude Code 时，都需要提供有效的 JWT token 进行身份验证。这防止了未授权的进程连接到 Claude Code 并执行操作。
+</p>
+
+<p>
+  <strong>Session 隔离</strong>是 Bridge 的另一个重要特性。每个 IDE 窗口对应一个独立的 Bridge Session，它们之间的上下文和权限完全隔离。这意味着你在一个项目中授予的文件访问权限不会泄露到另一个项目。
+</p>
+
+<p>
+  Bridge 还集成了 <strong>MCP Connection Manager</strong>，管理通过 Bridge 暴露给 IDE 的 MCP 服务。IDE 扩展可以通过 Bridge 访问 Claude Code 注册的所有 MCP 工具，就像它们是 IDE 原生功能一样。
+</p>
+
+<div class="card">
+  <div class="card-title">Bridge 双向消息协议</div>
+  <div class="flow">
+    <span class="flow-node">IDE 扩展</span>
+    <span class="flow-arrow">&harr;</span>
+    <span class="flow-node">JWT 验证</span>
+    <span class="flow-arrow">&harr;</span>
+    <span class="flow-node">Bridge Server</span>
+    <span class="flow-arrow">&harr;</span>
+    <span class="flow-node">Claude Code 核心</span>
+    <span class="flow-arrow">&harr;</span>
+    <span class="flow-node">MCP Manager</span>
+  </div>
+</div>
+
+<details>
+<summary><strong>权限回调机制</strong></summary>
+<div class="details-body">
+<p>当 Claude Code 需要执行一个需要用户确认的操作时（如写入文件），权限请求会通过 Bridge 回调到 IDE。IDE 扩展可以在编辑器界面内弹出确认对话框，用户无需切换到终端即可授权操作。这种回调机制保持了 Claude Code 的权限模型完整性，同时优化了 IDE 内的使用体验。</p>
+</div>
+</details>
+
+<!-- ==================== 6. Plugin ==================== -->
+<h2 id="plugin">6. Plugin 插件系统</h2>
+
+<p>
+  Plugin 系统是 Claude Code 的扩展框架。插件可以向系统添加新的命令、工具和技能，实现核心系统没有内置的功能。插件的安装、管理和生命周期由 Plugin Manager 统一协调。
+</p>
+
+<p>
+  插件的生命周期包括：<strong>发现</strong>（从注册表或本地路径找到插件）、<strong>安装</strong>（下载并验证插件包）、<strong>加载</strong>（初始化插件代码并注册其提供的命令/工具/技能）、<strong>运行</strong>（插件响应用户操作）和<strong>卸载</strong>（清理并移除插件）。
+</p>
+
+<p>
+  通过 <code class="ic">/plugin</code> 命令可以进入插件管理面板，查看已安装的插件、搜索新插件或配置现有插件。<code class="ic">/reload-plugins</code> 支持热更新——无需重启 Claude Code 即可重新加载所有插件，这在插件开发调试时非常方便。
+</p>
+
+<div class="callout green">
+  <strong>插件能提供什么：</strong>一个插件可以同时注册新的斜杠命令（出现在 <code class="ic">/</code> 菜单中）、新的工具（被模型直接调用）和新的技能（在 Skill 发现中出现）。这三种扩展点可以组合使用。
+</div>
+
+<details>
+<summary><strong>版本管理与缓存清理</strong></summary>
+<div class="details-body">
+<p>每个插件都有版本号。Plugin Manager 在加载时检查版本兼容性——如果插件要求的 Claude Code 最低版本高于当前版本，会发出警告并跳过加载。插件的缓存（如编译后的代码、元数据索引）存储在 <code class="ic">~/.claude/plugins/cache/</code> 中，可以通过管理面板中的清理选项手动清除。</p>
+<table class="tbl">
+  <tr><th>操作</th><th>命令</th><th>说明</th></tr>
+  <tr><td>查看已安装插件</td><td><code class="ic">/plugin list</code></td><td>列出所有已安装插件及其状态</td></tr>
+  <tr><td>安装插件</td><td><code class="ic">/plugin install &lt;name&gt;</code></td><td>从注册表安装指定插件</td></tr>
+  <tr><td>热更新</td><td><code class="ic">/reload-plugins</code></td><td>不重启地重新加载所有插件</td></tr>
+  <tr><td>卸载插件</td><td><code class="ic">/plugin remove &lt;name&gt;</code></td><td>移除插件并清理其注册项</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 7. Skills ==================== -->
+<h2 id="skills">7. Skills 技能系统（详细版）</h2>
+
+<p>
+  Skills 是 Claude Code 的知识扩展机制。与 Plugin 不同，Skill 本质上是一个结构化的 <strong>.prompt 文件</strong>——它包含描述、触发条件和专业知识内容。当用户的请求匹配到某个 Skill 时，该 Skill 的内容会被注入到模型的上下文中，让模型临时获得这个领域的专业能力。
+</p>
+
+<p>
+  Skill 的来源分为三种：<strong>Bundled Skills</strong>（随 Claude Code 一起发布的内置技能）、<strong>用户 Skills</strong>（存放在 <code class="ic">~/.claude/skills/</code> 中的个人技能）和<strong>项目 Skills</strong>（存放在项目的 <code class="ic">.claude/skills/</code> 目录中、随代码仓库分发的团队技能）。
+</p>
+
+<p>
+  Skill 发现机制在启动时扫描所有 Skill 来源目录，读取每个 Skill 的 manifest（名称、描述、触发条件），但<strong>不会预加载 Skill 的完整内容</strong>——只有当 Skill 被触发时才会读取。这种懒加载策略确保即使有大量 Skill，启动时间也不会受到影响。
+</p>
+
+<p>
+  一个重要的设计决策是：<strong>Skill 可以变成 Slash Command</strong>。当一个 Skill 被安装后，它会自动注册为一个同名的斜杠命令。例如，一个名为 <code class="ic">commit</code> 的 Skill 会让用户可以通过 <code class="ic">/commit</code> 直接调用它。这模糊了 Skill 和 Command 的边界，让扩展更加自然。
+</p>
+
+<div class="callout blue">
+  <strong>MCP Prompts 也是 Skill 来源：</strong>通过 MCP 协议连接的外部服务可以暴露 Prompts，这些 Prompts 会被 Claude Code 当作 Skills 处理。这意味着一个 MCP 服务器不仅可以提供工具，还可以提供领域知识，极大扩展了集成的可能性。
+</div>
+
+<details>
+<summary><strong>.prompt 文件格式详解</strong></summary>
+<div class="details-body">
+<p>一个 <code class="ic">.prompt</code> 文件本质上是一个 Markdown 文件，头部包含 YAML frontmatter 定义元数据：</p>
+<div class="diagram">---
+name: my-skill
+description: 一句话描述这个 Skill 做什么
+trigger: 何时触发（关键词或模式匹配描述）
+---
+
+# Skill 正文内容（Markdown）
+
+这里是模型会读到的专业知识和指导...
+可以包含代码示例、最佳实践、约束规则等。</div>
+<p>frontmatter 中的 <code class="ic">trigger</code> 字段告诉 Skill 发现系统何时应该激活这个 Skill。系统会将用户输入与所有已注册 Skill 的触发条件进行匹配，并选择最相关的 Skill 注入上下文。</p>
+</div>
+</details>
+
+<!-- ==================== 8. Memory ==================== -->
+<h2 id="memory">8. 记忆系统全景（5+ 种记忆机制）</h2>
+
+<p>
+  Claude Code 的记忆系统是其最复杂的子系统之一。它通过多种互补的机制，让 AI 助手能够在会话间保持对用户、项目和团队的"记忆"。这些机制从简单的手写规则文件到复杂的自动知识提取和团队同步，覆盖了不同场景的需求。
+</p>
+
+<h3 id="memory-claudemd">CLAUDE.md — 用户手写规则</h3>
+<p>
+  <code class="ic">CLAUDE.md</code> 是最基础也最直接的记忆形式。用户在项目根目录或 <code class="ic">~/.claude/</code> 中编写 Markdown 文件，声明编码规范、项目约定和个人偏好。这些内容在每次会话启动时被加载到模型上下文中，作为系统级指令。它是显式的、可版本控制的、团队可共享的。
+</p>
+
+<h3 id="memory-auto">Auto Memory / Extract Memories — 自动提取</h3>
+<p>
+  Auto Memory 是一种被动记忆机制。当 Claude Code 在会话中观察到值得记住的信息（如用户的偏好、项目的特殊约定、反复出现的模式），它会在对话结束时自动提取这些信息并持久化。下次对话开始时，这些记忆会被加载回来。这解决了"我上次已经告诉你了"的痛点。
+</p>
+
+<h3 id="memory-magicdocs">Magic Docs — 自动更新文档</h3>
+<p>
+  Magic Docs 比 Auto Memory 更进一步。它不仅提取记忆碎片，还能自动生成和更新项目文档。例如，当 Claude Code 在多次会话中积累了对一个项目架构的理解后，它可以将这些知识整合成一份结构化的文档，并在后续会话中发现新信息时持续更新。
+</p>
+
+<h3 id="memory-dream">Auto Dream — 定时记忆整合</h3>
+<p>
+  Auto Dream 借鉴了人类睡眠中的记忆巩固概念。在用户不活跃时（如夜间），系统会对积累的记忆碎片进行整合——去除冗余、解决矛盾、建立关联。这确保记忆库随着时间推移变得更加精炼和有用，而不是无限膨胀。
+</p>
+
+<h3 id="memory-team">Team Memory Sync — 团队知识共享</h3>
+<p>
+  Team Memory Sync 将记忆从个人扩展到团队。通过 <code class="ic">push</code>、<code class="ic">pull</code> 和 <code class="ic">watch</code> 操作，团队成员可以共享和同步他们的 Claude Code 记忆。一个成员发现的项目约定可以自动传播给整个团队，实现知识的集体积累。
+</p>
+
+<h3 id="memory-thinkback">Thinkback — 年度回顾 / 记忆回放</h3>
+<p>
+  Thinkback 是一个回顾性功能，允许用户回放和审视过去一段时间内 Claude Code 积累的记忆。它像一个"年度总结"——帮助用户了解 AI 助手学到了什么、哪些记忆最常被使用、哪些可能已经过时需要清理。
+</p>
+
+<div class="card">
+  <div class="card-title">记忆层级对比</div>
+  <table class="tbl">
+    <tr><th>机制</th><th>触发方式</th><th>存储位置</th><th>共享范围</th><th>更新频率</th></tr>
+    <tr><td>CLAUDE.md</td><td>用户手写</td><td>文件系统</td><td>项目/全局</td><td>手动</td></tr>
+    <tr><td>Auto Memory</td><td>会话结束时自动</td><td>本地数据库</td><td>个人</td><td>每次会话</td></tr>
+    <tr><td>Magic Docs</td><td>知识积累后自动</td><td>项目目录</td><td>项目</td><td>按需</td></tr>
+    <tr><td>Auto Dream</td><td>空闲时定时</td><td>本地数据库</td><td>个人</td><td>定时</td></tr>
+    <tr><td>Team Sync</td><td>push/pull/watch</td><td>云端</td><td>团队</td><td>按需/实时</td></tr>
+    <tr><td>Thinkback</td><td>用户主动触发</td><td>只读回放</td><td>个人</td><td>N/A</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 9. Analytics ==================== -->
+<h2 id="analytics">9. Analytics 分析与遥测</h2>
+
+<p>
+  Claude Code 的遥测系统负责收集产品使用数据、性能指标和错误报告，帮助团队了解产品的实际使用情况并做出数据驱动的决策。整个遥测系统在设计上非常注重隐私——用户可以通过 <code class="ic">/privacy-settings</code> 精细控制哪些数据被收集。
+</p>
+
+<h3 id="analytics-featureflags">GrowthBook Feature Flags + A/B 测试</h3>
+<p>
+  Claude Code 使用 <strong>GrowthBook</strong> 作为 Feature Flag 平台。每个功能开关都可以关联到 A/B 测试实验，系统根据用户的实验分组决定功能的可见性和行为。这意味着你看到的 Claude Code 和你同事看到的可能在细节上有差异——新功能正在被分组测试以验证效果。
+</p>
+
+<h3 id="analytics-otel">OpenTelemetry + gRPC 传输</h3>
+<p>
+  底层遥测采用 <strong>OpenTelemetry</strong> 标准，确保数据格式的通用性和可扩展性。遥测数据通过 <strong>gRPC</strong> 协议传输到后端，gRPC 的二进制编码和 HTTP/2 多路复用确保了遥测对用户体验的影响降到最低。
+</p>
+
+<details>
+<summary><strong>PII 处理与隐私设置</strong></summary>
+<div class="details-body">
+<p>系统在发送遥测数据之前会执行 <strong>PII（个人身份信息）处理</strong>——自动检测并过滤/脱敏可能包含敏感信息的字段（如文件路径中的用户名、代码片段中的密钥模式等）。<strong>Datadog 事件日志</strong>作为运营监控的补充通道，记录系统级事件（如崩溃、超时、异常模式），帮助工程团队快速定位问题。</p>
+<table class="tbl">
+  <tr><th>组件</th><th>用途</th><th>传输方式</th></tr>
+  <tr><td>GrowthBook</td><td>Feature Flag 和 A/B 测试</td><td>HTTP REST</td></tr>
+  <tr><td>OpenTelemetry</td><td>性能指标和 Trace</td><td>gRPC</td></tr>
+  <tr><td>Datadog</td><td>运营事件日志</td><td>Agent / API</td></tr>
+  <tr><td>PII Filter</td><td>敏感信息脱敏</td><td>本地处理</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 10. Policy ==================== -->
+<h2 id="policy">10. Policy &amp; Compliance 策略与合规</h2>
+
+<p>
+  对于企业用户，Claude Code 提供了一套完整的策略与合规框架。它确保组织可以统一管理 Claude Code 的行为、限制资源使用并满足合规要求，而无需依赖每个开发者的个人配置。
+</p>
+
+<h3 id="policy-limits">Policy Limits — 用量限制执行</h3>
+<p>
+  Policy Limits 允许管理员设定各种使用限制：每日 token 预算、单次会话最大 token 数、可使用的模型列表、允许的工具集等。这些限制在客户端强制执行，即使用户尝试修改本地配置也无法绕过。
+</p>
+
+<h3 id="policy-remote-settings">Remote Managed Settings — 企业云端配置同步</h3>
+<p>
+  企业管理员可以通过云端下发配置到所有组织成员的 Claude Code 实例。这包括默认的 CLAUDE.md 内容、工具权限配置、MCP 服务器列表等。当用户启动 Claude Code 时，系统会自动拉取最新的企业配置并与本地配置合并（企业配置优先级更高）。
+</p>
+
+<h3 id="policy-settings-sync">Settings Sync — 用户设置云备份</h3>
+<p>
+  与企业配置不同，Settings Sync 是面向个人用户的功能。它将用户的个人偏好设置（如主题、快捷键配置、常用 Skill 等）备份到云端，并在用户登录新设备时自动恢复。这确保了跨设备使用的一致性。
+</p>
+
+<details>
+<summary><strong>MDM (macOS 移动设备管理) 集成</strong></summary>
+<div class="details-body">
+<p>在企业环境中，IT 部门通常使用 MDM（Mobile Device Management，移动设备管理）解决方案来管理公司设备。Claude Code 在 macOS 上集成了 MDM 支持，允许 IT 管理员通过 MDM Profile 预配置 Claude Code 的行为。MDM 配置的优先级最高——高于企业云端配置和用户本地配置——确保设备合规性。</p>
+<table class="tbl">
+  <tr><th>配置层</th><th>来源</th><th>优先级</th><th>可被用户覆盖</th></tr>
+  <tr><td>MDM Profile</td><td>IT 管理员</td><td>最高</td><td>否</td></tr>
+  <tr><td>Remote Managed</td><td>组织管理员</td><td>高</td><td>部分</td></tr>
+  <tr><td>Settings Sync</td><td>个人云备份</td><td>中</td><td>是</td></tr>
+  <tr><td>本地配置</td><td>用户手动</td><td>低</td><td>是</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 11. Proactive ==================== -->
+<h2 id="proactive">11. Proactive / Kairos / Assistant 模式</h2>
+
+<p>
+  这是 Claude Code 中最具实验性的功能群。它们代表了一种从"被动响应"到"主动服务"的范式转变——AI 不再只是等待用户输入，而是主动观察环境、预测需求并提供帮助。所有这些模式都受到 Feature Flag 的严格控制，可能随时被调整或移除。
+</p>
+
+<h3 id="proactive-mode">Proactive Mode — 主动模式</h3>
+<p>
+  在 Proactive Mode 下，Claude Code 会主动监控开发环境的变化——文件修改、构建错误、测试失败等——并在发现问题时主动通知用户或建议修复方案。例如，当它检测到保存的文件引入了类型错误时，可能在用户注意到之前就提示"刚才的修改导致了 TypeScript 编译错误，要我修复吗？"。
+</p>
+
+<h3 id="kairos-mode">Kairos / Assistant Mode — 助手模式</h3>
+<p>
+  Kairos 是一个更全面的 AI 助手模式。它不仅限于代码任务，还能处理更广泛的工作流程——日程管理、信息查询、文档生成等。它代表了 Claude Code 从"AI 编码工具"向"AI 工作伙伴"演进的方向。
+</p>
+
+<h3 id="daemon-mode">DAEMON 模式</h3>
+<p>
+  DAEMON 模式让 Claude Code 作为后台守护进程持续运行。即使用户没有打开终端或 IDE，DAEMON 也可以执行预设的任务——如定期检查代码仓库状态、运行自动化测试、同步团队记忆等。<strong>SleepTool</strong> 在 DAEMON 模式中扮演重要角色：它允许 Agent 在没有待处理任务时"休眠"，降低资源消耗，直到有新事件触发它醒来。
+</p>
+
+<div class="callout red">
+  <strong>实验性警告：</strong>Proactive、Kairos 和 DAEMON 模式都是高度实验性的功能，可能在未来版本中被大幅修改或移除。它们目前通过 Feature Flag 控制，仅对部分用户可见。如果你在生产环境中依赖它们，请做好适配变更的准备。
+</div>
+
+<details>
+<summary><strong>SleepTool 与 DAEMON 的协作</strong></summary>
+<div class="details-body">
+<p><code class="ic">SleepTool</code> 是一个特殊的内置工具，专为 DAEMON 模式设计。当 DAEMON Agent 判断当前没有需要处理的任务时，它会调用 SleepTool 并指定一个唤醒条件（如"10 分钟后"、"当文件 X 被修改时"、"当 CI 管道完成时"）。SleepTool 将 Agent 挂起，释放计算资源，直到唤醒条件满足。</p>
+<div class="flow">
+  <span class="flow-node">DAEMON Agent 空闲</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">调用 SleepTool</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Agent 挂起</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">唤醒事件触发</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Agent 恢复执行</span>
+</div>
+<p>这种设计使得 DAEMON 模式可以长期运行而不会持续消耗 API 调用和 token，只在有实际工作要做时才"醒来"。</p>
+</div>
+</details>
+
+<!-- ==================== 12. Vim ==================== -->
+<h2 id="vim">12. Vim 模式</h2>
+
+<p>
+  Claude Code 内置了完整的 Vim 键位映射实现，为习惯 Vim 操作方式的开发者提供无缝体验。通过 <code class="ic">/vim</code> 命令可以在 Vim 模式和普通模式之间切换。
+</p>
+
+<p>
+  Vim 模式支持标准的 <strong>Motion</strong>（光标移动命令，如 <code class="ic">w</code>、<code class="ic">b</code>、<code class="ic">e</code>、<code class="ic">0</code>、<code class="ic">$</code>）和 <strong>Command</strong>（操作命令，如 <code class="ic">d</code>、<code class="ic">c</code>、<code class="ic">y</code>）的组合。这不是一个简化版本——它实现了足够多的 Vim 操作，让 Vim 用户感觉输入区域就像一个迷你 Vim 编辑器。
+</p>
+
+<p>
+  Vim 模式的实现与输入框的文本编辑引擎深度集成。它维护了一个独立的模式状态机（Normal / Insert / Visual），并在 Ink 的 TextInput 组件上拦截键盘事件来实现对应的行为。
+</p>
+
+<details>
+<summary><strong>支持的 Vim 操作一览</strong></summary>
+<div class="details-body">
+<table class="tbl">
+  <tr><th>类别</th><th>操作</th><th>说明</th></tr>
+  <tr><td>模式切换</td><td><code class="ic">i</code>, <code class="ic">a</code>, <code class="ic">o</code>, <code class="ic">Esc</code>, <code class="ic">v</code></td><td>进入/退出 Insert、Visual 模式</td></tr>
+  <tr><td>Motion</td><td><code class="ic">h/j/k/l</code>, <code class="ic">w/b/e</code>, <code class="ic">0/$</code>, <code class="ic">gg/G</code></td><td>光标移动</td></tr>
+  <tr><td>编辑</td><td><code class="ic">d</code>, <code class="ic">c</code>, <code class="ic">x</code>, <code class="ic">p</code>, <code class="ic">u</code></td><td>删除、修改、粘贴、撤销</td></tr>
+  <tr><td>搜索</td><td><code class="ic">/</code>, <code class="ic">n</code>, <code class="ic">N</code></td><td>前向搜索和重复</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 13. Ink ==================== -->
+<h2 id="ink">13. Ink 终端 UI 框架</h2>
+
+<p>
+  Claude Code 的整个终端界面基于 <strong>React + Ink</strong> 构建。Ink 是一个将 React 的组件模型带到终端的框架——开发者可以用 JSX 编写终端 UI 组件，React 的虚拟 DOM diffing 确保只有变化的部分被重新渲染到终端。
+</p>
+
+<p>
+  Claude Code 的代码库中包含了 <strong>390+ 个 UI 组件</strong>，涵盖了从基础布局到复杂交互的所有需求。这些组件包括文本渲染、代码高亮、表格、进度条、确认对话框、文件选择器等。这种组件化架构使得 UI 的开发和维护与传统 Web 应用一样模块化。
+</p>
+
+<p>
+  <strong>Focus Manager</strong> 是 Ink UI 中的焦点管理系统。在终端中，同时只能有一个组件接收键盘输入。Focus Manager 负责追踪当前焦点组件，处理 Tab 切换和焦点转移，确保复杂布局中的键盘导航正确运作。
+</p>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">全屏布局模式</div>
+    <p>占据整个终端窗口，类似 TUI 应用。适用于需要复杂布局的场景，如文件浏览器、多面板视图等。</p>
+  </div>
+  <div class="card">
+    <div class="card-title">内联输出模式</div>
+    <p>在终端的正常滚动流中渲染内容。适用于对话式交互，输出与终端的其他内容自然混合。</p>
+  </div>
+</div>
+
+<details>
+<summary><strong>关键交互组件</strong></summary>
+<div class="details-body">
+<table class="tbl">
+  <tr><th>组件</th><th>用途</th><th>交互方式</th></tr>
+  <tr><td>TextInput</td><td>文本输入框</td><td>支持 Vim 模式、历史记录、自动补全</td></tr>
+  <tr><td>Select</td><td>选择列表</td><td>上下箭头选择，回车确认</td></tr>
+  <tr><td>Confirmation</td><td>确认对话框</td><td>Y/N 二选一</td></tr>
+  <tr><td>PermissionRequest</td><td>权限请求</td><td>显示操作详情，等待用户授权</td></tr>
+  <tr><td>FileViewer</td><td>文件预览</td><td>语法高亮、行号显示</td></tr>
+  <tr><td>ProgressBar</td><td>进度指示</td><td>显示操作进度百分比</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 14. Prompt Suggestion ==================== -->
+<h2 id="prompt-suggestion">14. Prompt Suggestion 提示建议</h2>
+
+<p>
+  Prompt Suggestion 系统在用户输入之前或之后提供上下文相关的提示建议。它分析当前的对话状态、项目上下文和历史模式，推荐用户可能想要执行的下一步操作。这类似于搜索引擎的自动补全，但针对的是 AI 编程助手的使用场景。
+</p>
+
+<p>
+  建议的生成基于多种信号：当前工作目录中的文件结构（如检测到 <code class="ic">package.json</code> 会建议 npm 相关操作）、最近的对话上下文（如刚完成一个函数会建议编写测试）、以及用户的历史使用模式（如经常在提交前运行 lint 会自动建议这一步）。所有建议都经过相关性排序，最相关的排在最前面。
+</p>
+
+<p>
+  <strong>Speculation（推测性预生成）</strong>是一种激进的优化。在用户还在思考下一步时，系统会根据上下文预测用户最可能的输入，并提前开始生成模型回复。如果预测命中，用户会感受到近乎即时的响应；如果预测失败，预生成的结果会被静默丢弃，用户完全无感知。Speculation 的命中率是一个重要的产品指标，它直接影响用户感知到的响应速度。
+</p>
+
+<p>
+  在 Swarms 模式下，Prompt Suggestion 与多 Agent 协调有交互——它可以建议用户将任务分配给特定的 Agent 或建议启用/调整 Swarm 配置。这使得多 Agent 工作流的启动更加顺畅。
+</p>
+
+<details>
+<summary><strong>Speculation 的工作机制</strong></summary>
+<div class="details-body">
+<div class="flow">
+  <span class="flow-node">用户完成上一轮对话</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">分析上下文生成 Top-K 预测</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">后台预生成 Top-1 回复</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">用户输入匹配？立即返回 / 丢弃</span>
+</div>
+<p>预生成有严格的资源限制：只会消耗少量 token（通常只生成前几个段落），并且在用户开始输入时立即取消。这确保 Speculation 的成本可控，即使命中率不高也不会显著增加费用。</p>
+</div>
+</details>
+
+<!-- ==================== 15. Keybindings ==================== -->
+<h2 id="keybindings">15. Keybindings 快捷键系统</h2>
+
+<p>
+  Claude Code 提供了一套完全可自定义的快捷键系统。所有键位映射存储在 <code class="ic">~/.claude/keybindings.json</code> 中，用户可以根据个人习惯重新映射任何操作。配置文件使用 JSON 格式，键名遵循标准的修饰符+键名表示法（如 <code class="ic">ctrl+shift+p</code>）。
+</p>
+
+<p>
+  系统支持 <strong>Chord Bindings</strong>——连续按键组合。例如，你可以将 <code class="ic">Ctrl+K</code> 然后 <code class="ic">Ctrl+S</code> 这个两步组合绑定到一个操作。Chord Bindings 允许在不与现有单键快捷键冲突的情况下定义大量快捷键。系统内部维护一个按键序列缓冲区，当检测到 Chord 的第一个键被按下时，它会进入"等待模式"，在短暂超时窗口内等待第二个键。
+</p>
+
+<p>
+  快捷键的解析与 Vim 模式是互斥的——当 Vim 模式处于 Normal 状态时，大多数快捷键会被 Vim 键位映射拦截。这种优先级机制确保了两套系统不会产生冲突。用户可以在 Vim 模式下通过 Chord Bindings 定义不与 Vim 操作冲突的自定义快捷键。
+</p>
+
+<details>
+<summary><strong>默认快捷键列表</strong></summary>
+<div class="details-body">
+<table class="tbl">
+  <tr><th>快捷键</th><th>操作</th><th>说明</th></tr>
+  <tr><td><code class="ic">Ctrl+C</code></td><td>中断</td><td>停止当前操作</td></tr>
+  <tr><td><code class="ic">Ctrl+K</code></td><td>搜索</td><td>打开全局搜索</td></tr>
+  <tr><td><code class="ic">Ctrl+L</code></td><td>清屏</td><td>清除终端输出</td></tr>
+  <tr><td><code class="ic">Ctrl+D</code></td><td>退出</td><td>退出 Claude Code</td></tr>
+  <tr><td><code class="ic">Up/Down</code></td><td>历史</td><td>浏览输入历史</td></tr>
+  <tr><td><code class="ic">Tab</code></td><td>补全</td><td>触发自动补全</td></tr>
+  <tr><td><code class="ic">Escape</code></td><td>取消</td><td>取消当前输入/操作</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 16. Migrations ==================== -->
+<h2 id="migrations">16. Migrations 数据迁移</h2>
+
+<p>
+  随着 Claude Code 版本的迭代，配置格式、数据结构和存储方案可能发生变化。Migrations 系统确保用户从旧版本升级时，其数据能够自动、无损地迁移到新格式。
+</p>
+
+<p>
+  每个 Migration 是一个编号的脚本，描述了从版本 N 到版本 N+1 的数据转换逻辑。系统在启动时检查当前数据版本与期望版本，如果不匹配则按顺序执行所有中间 Migration。这个过程是<strong>自动且幂等的</strong>——即使同一个 Migration 被意外执行多次，结果也是一致的。
+</p>
+
+<p>
+  Migration 覆盖的范围包括：配置文件格式变更（如 JSON schema 变化）、会话数据结构调整、缓存清理（当缓存格式不兼容时）和权限模型升级。用户通常不会感知到 Migration 的存在，除非迁移过程中出现错误需要手动干预。
+</p>
+
+<details>
+<summary><strong>Migration 执行流程</strong></summary>
+<div class="details-body">
+<div class="diagram">Claude Code 启动
+│
+├─→ 读取本地数据版本号 (stored_version)
+├─→ 比较期望版本号 (expected_version)
+│
+├─ 如果 stored_version == expected_version → 跳过，正常启动
+│
+├─ 如果 stored_version < expected_version →
+│   ├─→ 创建备份快照
+│   ├─→ 按顺序执行 migration_N+1, migration_N+2, ...
+│   ├─→ 验证每步迁移结果
+│   └─→ 更新 stored_version
+│
+└─ 如果 stored_version > expected_version →
+    降级场景，发出警告但不回滚</div>
+<p>每个 Migration 在执行前会先创建数据备份。如果迁移过程中出现错误，系统会自动回滚到备份状态，并在下次启动时重试。连续三次失败后，系统会要求用户手动干预。</p>
+</div>
+</details>
+
+<!-- ==================== 17. Entrypoints ==================== -->
+<h2 id="entrypoints">17. Entrypoints 入口点</h2>
+
+<p>
+  Claude Code 有多个入口点（Entrypoint），每个入口点针对不同的使用场景进行了优化。理解入口点的区别有助于理解 Claude Code 在不同环境下的行为差异。
+</p>
+
+<h3 id="entry-cli">CLI 入口</h3>
+<p>
+  最常见的入口。用户在终端输入 <code class="ic">claude</code> 启动交互式会话，或使用 <code class="ic">claude -p "prompt"</code> 进行非交互式调用。CLI 入口会完整初始化终端 UI（Ink 框架）、加载所有 Skill 和 Plugin，并启动交互循环。
+</p>
+
+<h3 id="entry-sdk">SDK 入口</h3>
+<p>
+  面向程序化调用的入口。开发者可以在 Node.js/Bun 脚本中引入 Claude Code SDK，以编程方式调用其能力。SDK 入口跳过终端 UI 初始化，但保留完整的工具和权限系统。返回值是结构化数据（JSON），而非终端渲染的文本。
+</p>
+
+<h3 id="entry-bridge">Bridge 入口</h3>
+<p>
+  专为 IDE 集成设计的入口。Bridge 入口启动 Claude Code 为一个后台服务进程，通过 IPC 协议与 IDE 扩展通信。它不初始化终端 UI，但额外初始化 JWT 验证和 WebSocket 服务器。
+</p>
+
+<div class="card">
+  <div class="card-title">入口点初始化差异</div>
+  <table class="tbl">
+    <tr><th>初始化步骤</th><th>CLI</th><th>SDK</th><th>Bridge</th></tr>
+    <tr><td>终端 UI (Ink)</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td></tr>
+    <tr><td>Skill / Plugin 加载</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+    <tr><td>权限系统</td><td>&#10003;</td><td>&#10003;</td><td>&#10003; + 回调</td></tr>
+    <tr><td>Feature Flags</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+    <tr><td>JWT 验证</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td></tr>
+    <tr><td>WebSocket Server</td><td>&#10007;</td><td>&#10007;</td><td>&#10003;</td></tr>
+    <tr><td>交互循环</td><td>&#10003;</td><td>&#10007;</td><td>事件驱动</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 18. Schemas ==================== -->
+<h2 id="schemas">18. Schemas 验证</h2>
+
+<p>
+  Claude Code 使用 <strong>Zod v4</strong> 作为运行时数据验证库。Zod 提供了 TypeScript-first 的 schema 声明方式，在运行时对数据进行类型安全的验证。这在一个需要处理大量动态数据（模型返回、工具输入、配置文件、用户输入）的系统中至关重要。
+</p>
+
+<p>
+  Schema 的应用范围覆盖了系统的几乎每一层。<strong>工具 Input Schema</strong> 定义了每个工具接受的参数格式——当模型生成的工具调用参数不符合 schema 时，系统会拒绝执行并告知模型错误原因。<strong>配置 Schema</strong> 验证用户配置文件的格式，防止配置错误导致运行时崩溃。<strong>消息类型 Schema</strong> 确保系统内部消息传递的类型安全。
+</p>
+
+<p>
+  Zod v4 相比 v3 在性能上有显著提升（解析速度提高约 2 倍），这对 Claude Code 这种每次工具调用都需要验证参数的系统来说非常重要。Schema 定义还被复用于生成模型可见的工具描述——模型看到的工具参数说明直接来源于 Zod schema，确保了文档和实现的一致性。
+</p>
+
+<details>
+<summary><strong>Schema 在各层的应用</strong></summary>
+<div class="details-body">
+<table class="tbl">
+  <tr><th>层</th><th>Schema 对象</th><th>验证内容</th></tr>
+  <tr><td>工具层</td><td>Tool Input Schema</td><td>模型生成的工具调用参数</td></tr>
+  <tr><td>配置层</td><td>Config Schema</td><td>settings.json、CLAUDE.md 结构化部分</td></tr>
+  <tr><td>消息层</td><td>Message Schema</td><td>内部消息格式、API 请求/响应</td></tr>
+  <tr><td>插件层</td><td>Plugin Manifest Schema</td><td>插件元数据和接口声明</td></tr>
+  <tr><td>迁移层</td><td>Migration Schema</td><td>数据版本和迁移脚本声明</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 19. Cost Tracking ==================== -->
+<h2 id="cost-tracking">19. Cost Tracking 费用追踪</h2>
+
+<p>
+  Claude Code 内置了详细的费用追踪系统。每次 API 调用的 token 消耗会被实时记录，并根据当前使用的模型和定价策略计算费用。这让用户对使用成本有清晰的认知，避免意外的高额账单。
+</p>
+
+<p>
+  通过 <code class="ic">/cost</code> 命令，用户可以随时查看当前会话的累计费用，包括输入 token 数、输出 token 数、缓存命中情况和对应的美元金额。系统支持多种模型（如 Claude Opus、Sonnet、Haiku），每种模型有不同的定价，费用计算会根据实际使用的模型自动调整。
+</p>
+
+<p>
+  费用追踪还与 Policy Limits 集成。当会话费用接近管理员设定的预算上限时，系统会发出警告；达到上限时会阻止进一步的 API 调用。这为企业用户提供了自动化的成本控制机制。
+</p>
+
+<div class="card">
+  <div class="card-title">费用计算公式</div>
+  <div class="diagram">会话总费用 = Σ (每次调用的 input_tokens × 模型输入单价
+             + 每次调用的 output_tokens × 模型输出单价
+             - cache_hit_tokens × 缓存折扣)</div>
+</div>
+
+<details>
+<summary><strong>/cost 命令输出示例</strong></summary>
+<div class="details-body">
+<div class="diagram">╭─ Session Cost Summary ─────────────────────╮
+│ Model:       claude-sonnet-4-20250514         │
+│ API Calls:   12                              │
+│ Input:       45,230 tokens  ($0.135)         │
+│ Output:      12,840 tokens  ($0.077)         │
+│ Cache Hits:  28,100 tokens  (-$0.042)        │
+│ ─────────────────────────────────────────── │
+│ Total:       $0.170                          │
+│ Budget:      $5.00 remaining (policy limit)  │
+╰──────────────────────────────────────────────╯</div>
+<p>费用数据在会话结束后也会被持久化，用户可以通过历史记录查看过去每次会话的费用明细。这些数据对于团队的成本分析和预算规划非常有价值。</p>
+</div>
+</details>
+
+<!-- ==================== 20. Deep Link ==================== -->
+<h2 id="deep-link">20. Deep Link 深度链接</h2>
+
+<p>
+  Deep Link 功能允许外部应用通过 URL scheme 直接打开 Claude Code 并跳转到特定的状态或操作。例如，一个 CI/CD 系统可以在构建失败时生成一个 Deep Link，用户点击后 Claude Code 会自动打开并加载相关的错误上下文。
+</p>
+
+<p>
+  Deep Link 使用自定义的 URL scheme（如 <code class="ic">claude-code://</code>），操作系统会将匹配的 URL 路由到 Claude Code 进程。URL 中可以编码多种信息：要打开的项目路径、要执行的初始命令、要加载的会话 ID 等。
+</p>
+
+<p>
+  这个功能的一个重要应用场景是 <strong>IDE 和 Web 界面的联动</strong>。开发者在 Web 上的代码审查工具中看到一个问题时，可以点击"在 Claude Code 中打开"的链接，直接在终端中启动一个已经加载了相关上下文的 Claude Code 会话。这种无缝跳转减少了手动设置上下文的摩擦。
+</p>
+
+<details>
+<summary><strong>Deep Link URL 结构</strong></summary>
+<div class="details-body">
+<div class="diagram">claude-code://action?param1=value1&amp;param2=value2
+
+示例：
+claude-code://open?project=/path/to/repo&amp;prompt=fix+the+build+error
+claude-code://session?id=abc123
+claude-code://command?run=/review-pr+456</div>
+<p>Deep Link 处理器在 Claude Code 启动时注册到操作系统。如果 Claude Code 已经在运行，新的 Deep Link 会被传递到现有进程；如果没有运行，系统会先启动 Claude Code 再处理链接内容。</p>
+</div>
+</details>
+
+<!-- ==================== 总结 ==================== -->
+<h2 id="summary">总结：子系统间的协作网络</h2>
+
+<p>
+  这 20 个子系统并非孤立运作——它们之间存在密切的协作关系。下面是一些关键的交叉点：
+</p>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-block gold">Voice + Ink</div>
+    <div class="layer-block blue">Skills + Plugin + Commands</div>
+    <div class="layer-block green">Coordinator + Remote + DAEMON</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block purple">Memory + Analytics + Policy</div>
+    <div class="layer-block red">Schemas + Migrations + Entrypoints</div>
+  </div>
+</div>
+
+<div class="callout green">
+  <strong>核心洞察：</strong>Claude Code 的复杂度不在于任何单个子系统，而在于它们之间的组合爆炸。理解这些子系统各自的职责和边界，是深入理解整个系统的第一步。当你在源码中看到一个不认识的模块时，回到本页找到它的位置和上下文关系，会帮助你更快建立全局认知。
+</div>
+
+<table class="tbl">
+  <tr><th>协作组</th><th>参与子系统</th><th>协作方式</th></tr>
+  <tr><td>扩展生态</td><td>Plugin + Skills + MCP</td><td>Plugin 注册 Skill，Skill 来源于 MCP Prompts</td></tr>
+  <tr><td>远程执行</td><td>Remote + Bridge + Coordinator</td><td>Bridge 传递远程上下文，Coordinator 编排远程 Agent</td></tr>
+  <tr><td>知识管理</td><td>Memory + Skills + CLAUDE.md</td><td>记忆补充 Skill 知识，CLAUDE.md 是显式记忆</td></tr>
+  <tr><td>合规体系</td><td>Policy + Analytics + MDM</td><td>Policy 定义规则，Analytics 追踪执行，MDM 强制实施</td></tr>
+  <tr><td>输入体验</td><td>Voice + Vim + Keybindings + Ink</td><td>多种输入模态共享 Ink 渲染和焦点管理</td></tr>
+  <tr><td>性能优化</td><td>Speculation + Cost Tracking + Schemas</td><td>预生成控制成本，Schema 验证避免无效调用</td></tr>
+</table>
+
+</div>
+</div></body>
+</html>

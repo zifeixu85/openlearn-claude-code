@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harness Engineering 进阶 S07-S12 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {h:"pages/architecture.html",t:"\u8fd0\u884c\u65f6\u67b6\u6784",b:"ARCH"},
+    {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+    {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+    {h:"pages/context-permissions.html",t:"\u4e0a\u4e0b\u6587\u4e0e\u6743\u9650"},
+    {h:"pages/kairos.html",t:"KAIROS \u6df1\u5ea6\u62c6\u89e3",b:"\u2605"},
+    {h:"pages/systems-overview.html",t:"\u5b50\u7cfb\u7edf\u5168\u666f",b:"20+"}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/></svg></button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/></svg></button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$</span> Claude Code \u5b66\u4e60\u624b\u518c</a>'
+  +'<div class="header-spacer"></div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search</button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light</button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875</a></div><div class="sidebar-divider"></div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'</div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      // Sub-group: check if any child is active
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'</div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'</span>':'')+'</a>';
+      });
+      sh+='</div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'</span>':'')+'</a>';
+    }
+  });
+  sh+='</div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle: simple show/hide via header button
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false,false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden,true);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){
+    sb.classList.remove('hidden');
+    document.body.classList.remove('sidebar-off');
+    if(btn)btn.classList.remove('collapsed');
+  }else{
+    sb.classList.add('hidden');
+    document.body.classList.add('sidebar-off');
+    if(btn)btn.classList.add('collapsed');
+  }
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  // Collect outline: h2, h3, and <details> with id or containing summary with code/strong
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){
+      items.push({level:2,id:el.id,text:el.textContent.trim(),el:el});
+    } else if(el.tagName==="H3"){
+      items.push({level:3,id:el.id,text:el.textContent.trim(),el:el});
+    } else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");
+      if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();
+      if(txt.length<3)return;
+      // use existing id or generate one
+      var did=el.id;
+      if(!did){
+        did="d-"+items.length;
+        el.id=did;
+      }
+      // truncate for toc display
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");
+    rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2</div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='</div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'</a>';
+        th+='<div class="toc-children">';
+        inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'</a>';
+      }
+    });
+    if(inGroup)th+='</div>';
+    rt.innerHTML=th;
+    document.body.appendChild(rt);
+    // scroll spy
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          tocAll.forEach(function(l){l.classList.remove("active")});
+          var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+          if(m){
+            m.classList.add("active");
+            var p=m.closest(".toc-children");
+            if(p)p.classList.add("expanded");
+            // Smoothly scroll TOC panel to keep active item visible
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});
+          }
+        }
+      });
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    // click h2 to toggle
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(e){
+        var nx=a.nextElementSibling;
+        if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded");
+      });
+    });
+    // expand first group
+    var fg=rt.querySelector(".toc-children");
+    if(fg)fg.classList.add("expanded");
+
+    // Mobile TOC: FAB button + drawer
+    var fab=document.createElement("button");
+    fab.className="toc-fab";fab.textContent="\u2630";
+    fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){
+        // Clone TOC as drawer
+        drt=rt.cloneNode(true);
+        drt.id="drawerToc";
+        drt.classList.add("as-drawer");
+        drt.classList.remove("right-toc");
+        drt.className="right-toc as-drawer";
+        // Add close button
+        var cl=document.createElement("div");
+        cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed\u5927\u7eb2";
+        cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);
+        document.body.appendChild(drt);
+        var dov=document.createElement("div");
+        dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");
+      drt.classList.toggle("open");
+      dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);
+updBtn(saved);
+window.toggleTheme=function(){
+  var c=document.documentElement.getAttribute("data-theme")||"dark";
+  var n=c==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",n);
+  localStorage.setItem("theme",n);updBtn(n);
+};
+function updBtn(t){
+  var b=document.querySelector(".theme-toggle");
+  if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark";
+}
+
+// ---- Sidebar toggle ----
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Global Search ----
+window.openSearch=function(){
+  if(document.getElementById("searchModal"))return;
+  var m=document.createElement("div");m.id="searchModal";m.className="search-modal";
+  m.innerHTML='<div class="search-backdrop" onclick="closeSearch()"></div>'
+    +'<div class="search-box">'
+    +'<input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus />'
+    +'<div id="searchResults" class="search-results"></div>'
+    +'<div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c</div>'
+    +'</div>';
+  document.body.appendChild(m);
+  setTimeout(function(){m.classList.add("open")},10);
+  var inp=document.getElementById("searchInput");
+  inp.addEventListener("input",doSearch);
+  inp.addEventListener("keydown",function(e){
+    if(e.key==="Escape")closeSearch();
+    if(e.key==="Enter"){
+      var first=document.querySelector(".search-result-item");
+      if(first)first.click();
+    }
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();
+      var items=document.querySelectorAll(".search-result-item");
+      var cur=document.querySelector(".search-result-item.focused");
+      var idx=-1;
+      items.forEach(function(it,i){if(it===cur)idx=i});
+      if(e.key==="ArrowDown")idx=Math.min(idx+1,items.length-1);
+      else idx=Math.max(idx-1,0);
+      items.forEach(function(it){it.classList.remove("focused")});
+      if(items[idx]){items[idx].classList.add("focused");items[idx].scrollIntoView({block:"nearest"})}
+    }
+  });
+};
+window.closeSearch=function(){
+  var m=document.getElementById("searchModal");
+  if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}
+};
+document.addEventListener("keydown",function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}
+});
+
+// Search index: collect all text content
+var PAGES=[
+  {u:B+"index.html",t:"\u9996\u9875"},
+  {u:B+"pages/architecture.html",t:"\u8fd0\u884c\u65f6\u67b6\u6784"},
+  {u:B+"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3"},
+  {u:B+"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c"},
+  {u:B+"pages/context-permissions.html",t:"\u4e0a\u4e0b\u6587\u4e0e\u6743\u9650"},
+  {u:B+"pages/learn-s01.html",t:"S01 Agent Loop \u57fa\u7840"},
+  {u:B+"pages/learn-s02.html",t:"S02 Tool Use \u5de5\u5177"},
+  {u:B+"pages/learn-s03.html",t:"S03 TodoWrite \u8ba1\u5212"},
+  {u:B+"pages/learn-s04.html",t:"S04 Subagent \u5b50\u4ee3\u7406"},
+  {u:B+"pages/learn-s05.html",t:"S05 Skill Loading \u6280\u80fd"},
+  {u:B+"pages/learn-s06.html",t:"S06 Context Compact \u538b\u7f29"},
+  {u:B+"pages/learn-s07.html",t:"S07 Task System \u4efb\u52a1"},
+  {u:B+"pages/learn-s08.html",t:"S08 Background Tasks \u540e\u53f0"},
+  {u:B+"pages/learn-s09.html",t:"S09 Agent Teams \u56e2\u961f"},
+  {u:B+"pages/learn-s10.html",t:"S10 Team Protocols \u534f\u8bae"},
+  {u:B+"pages/learn-s11.html",t:"S11 Autonomous Agents \u81ea\u7ec4\u7ec7"},
+  {u:B+"pages/learn-s12.html",t:"S12 Worktree Isolation \u9694\u79bb"},
+  {u:B+"pages/glossary.html",t:"\u672f\u8bed\u8868"},
+  {u:B+"pages/systems-overview.html",t:"\u5b50\u7cfb\u7edf\u5168\u666f Buddy Voice Coordinator Remote"},
+  {u:B+"pages/kairos.html",t:"KAIROS \u9f99\u867e Proactive Coordinator Brief Dream Assistant"}
+];
+
+function doSearch(){
+  var q=document.getElementById("searchInput").value.trim().toLowerCase();
+  var res=document.getElementById("searchResults");
+  if(!q){res.innerHTML="";return}
+  // Search current page headings + details summaries
+  var hits=[];
+  var pw2=document.querySelector(".page-wrap");
+  if(pw2){
+    pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){
+      var txt=el.textContent||"";
+      if(txt.toLowerCase().indexOf(q)>-1){
+        var id=el.id||el.closest("[id]")?.id||"";
+        hits.push({text:txt.substring(0,120),id:id,local:true});
+      }
+    });
+  }
+  // Also show page-level matches
+  PAGES.forEach(function(pg){
+    if(pg.t.toLowerCase().indexOf(q)>-1){
+      hits.push({text:pg.t,url:pg.u,local:false});
+    }
+  });
+  // Deduplicate and limit
+  var seen=new Set();
+  var html="";var count=0;
+  hits.forEach(function(h){
+    if(count>=12)return;
+    var key=h.text.substring(0,50);
+    if(seen.has(key))return;seen.add(key);count++;
+    if(h.local&&h.id){
+      html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">'
+        +'<span class="sr-type">\u672c\u9875</span>'+esc(h.text)+'</div>';
+    } else if(!h.local){
+      html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'">'
+        +'<span class="sr-type">\u9875\u9762</span>'+esc(h.text)+'</div>';
+    }
+  });
+  if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c</div>';
+  res.innerHTML=html;
+}
+function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag community">LEARN CLAUDE CODE</div>
+<h1>Harness Engineering 进阶 — <em>S07 到 S12</em></h1>
+<p class="subtitle">
+  前六节课建起了核心循环、工具、权限、上下文管理和子代理。本页覆盖后六节——从持久化任务图到 Git Worktree 隔离——将单一代理推进到真正的多代理自治系统。
+</p>
+
+<div class="callout">
+  <strong>阅读前提：</strong>你应该已经理解 S01-S06 的核心循环（user → LLM → tool → result → LLM）、权限门控、上下文压缩和 Subagent 调用。S07-S12 是在这个基础上逐层叠加新能力——每一层都不替换核心循环，而是扩展它。
+</div>
+
+<!-- ================================================================ -->
+<!-- S07: Task System                                                  -->
+<!-- ================================================================ -->
+<h2 id="s07">S07: Task System — 持久化任务图</h2>
+
+<h3 id="问题为什么需要任务图">问题：为什么需要任务图？</h3>
+<p>
+  在 S01-S06 的世界里，Claude Code 可以用内置的 <code class="ic">TodoManager</code> 跟踪待办事项。但 TodoManager 有两个致命缺陷：
+</p>
+<ul>
+  <li><strong>扁平列表：</strong>所有任务存在内存中的一个数组里，没有依赖关系，无法表达"任务 B 必须等任务 A 完成"。</li>
+  <li><strong>压缩后丢失：</strong>当上下文窗口满了、触发压缩时，TodoManager 的内容就被丢弃了。下一轮对话里，代理完全不记得之前的任务。</li>
+</ul>
+
+<div class="callout red">
+  <strong>核心矛盾：</strong>上下文窗口是有限的临时内存，但项目任务是长期存在的。把任务放在上下文里，就注定会在压缩时丢失。必须把任务持久化到磁盘。
+</div>
+
+<h3 id="解法每个任务一个-json-文件">解法：每个任务一个 JSON 文件</h3>
+<p>
+  解决方案很直接——在项目根目录创建 <code class="ic">.tasks/</code> 目录，每个任务是一个独立的 JSON 文件。文件名就是任务 ID（例如 <code class="ic">.tasks/task-001.json</code>）。
+</p>
+
+<pre><code>{
+  <span class="str">"id"</span>: <span class="str">"task-001"</span>,
+  <span class="str">"title"</span>: <span class="str">"实现用户认证模块"</span>,
+  <span class="str">"status"</span>: <span class="str">"in_progress"</span>,
+  <span class="str">"owner"</span>: <span class="str">"agent-alpha"</span>,
+  <span class="str">"blockedBy"</span>: [],
+  <span class="str">"description"</span>: <span class="str">"实现 JWT 登录和注册接口"</span>,
+  <span class="str">"createdAt"</span>: <span class="str">"2025-01-15T10:00:00Z"</span>,
+  <span class="str">"completedAt"</span>: <span class="kw">null</span>
+}
+
+{
+  <span class="str">"id"</span>: <span class="str">"task-002"</span>,
+  <span class="str">"title"</span>: <span class="str">"编写认证单元测试"</span>,
+  <span class="str">"status"</span>: <span class="str">"pending"</span>,
+  <span class="str">"owner"</span>: <span class="kw">null</span>,
+  <span class="str">"blockedBy"</span>: [<span class="str">"task-001"</span>],
+  <span class="str">"description"</span>: <span class="str">"为认证模块编写 Jest 测试"</span>,
+  <span class="str">"createdAt"</span>: <span class="str">"2025-01-15T10:01:00Z"</span>,
+  <span class="str">"completedAt"</span>: <span class="kw">null</span>
+}</code></pre>
+
+<p>关键字段是 <code class="ic">blockedBy</code>——它是一个任务 ID 数组，表示"我被这些任务阻塞了"。这构成了一个 <strong>有向无环图（DAG）</strong>。</p>
+
+<h3 id="dag-可视化">DAG 可视化</h3>
+<div class="diagram">任务依赖图（DAG）示例：
+
+  ┌────────────┐     ┌────────────┐
+  │ task-001   │     │ task-003   │
+  │ 用户认证   │     │ 数据库 Schema│
+  │ [进行中]   │     │ [已完成] ✓  │
+  └─────┬──────┘     └──┬────┬────┘
+        │               │    │
+        ▼               │    ▼
+  ┌────────────┐        │  ┌────────────┐
+  │ task-002   │        │  │ task-005   │
+  │ 认证测试   │        │  │ 数据迁移   │
+  │ [阻塞中] ✗ │        │  │ [已完成] ✓  │
+  └─────┬──────┘        │  └────────────┘
+        │               │
+        ▼               ▼
+  ┌─────────────────────────┐
+  │       task-004          │
+  │     集成测试            │
+  │ blockedBy: [002, 003]   │
+  │     [阻塞中] ✗          │
+  └─────────────────────────┘
+
+箭头方向 = "被依赖于"
+task-004 同时被 task-002 和 task-003 阻塞
+task-003 已完成，但 task-002 还没完成
+所以 task-004 仍然不能开始</div>
+
+<h3 id="三个核心问题">三个核心问题</h3>
+<p>任务系统的核心价值在于随时能回答三个问题：</p>
+
+<table class="tbl">
+  <tr><th>问题</th><th>查询逻辑</th><th>意义</th></tr>
+  <tr>
+    <td><strong>什么可以做？</strong></td>
+    <td><code class="ic">status == "pending" && blockedBy.length == 0</code></td>
+    <td>没有阻塞的待办任务，代理可以立即认领</td>
+  </tr>
+  <tr>
+    <td><strong>什么被卡住了？</strong></td>
+    <td><code class="ic">status == "pending" && blockedBy.length > 0</code></td>
+    <td>有依赖未完成的任务，需要先完成前置任务</td>
+  </tr>
+  <tr>
+    <td><strong>什么做完了？</strong></td>
+    <td><code class="ic">status == "completed"</code></td>
+    <td>记录进度，触发下游任务解锁</td>
+  </tr>
+</table>
+
+<h3 id="自动清理依赖">自动清理依赖</h3>
+<p>
+  当一个任务被标记为 <code class="ic">completed</code> 时，系统会扫描所有其他任务的 <code class="ic">blockedBy</code> 数组，把该任务 ID 移除。如果移除后 <code class="ic">blockedBy</code> 变成空数组，那个任务就从"阻塞"变成"可执行"——自动解锁。
+</p>
+
+<div class="flow">
+  <div class="flow-node">task-001 完成</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">扫描所有 blockedBy</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">移除 "task-001"</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">task-002 解锁</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">task-002 可执行</div>
+</div>
+
+<h3 id="对比todomanager-vs-task-system">对比：TodoManager vs Task System</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>TodoManager（S01-S06）</th><th>Task System（S07）</th></tr>
+  <tr><td>存储位置</td><td>内存（上下文窗口内）</td><td>磁盘（<code class="ic">.tasks/</code> 目录）</td></tr>
+  <tr><td>依赖关系</td><td>无</td><td><code class="ic">blockedBy</code> 字段形成 DAG</td></tr>
+  <tr><td>压缩后</td><td>丢失</td><td>完好无损</td></tr>
+  <tr><td>多代理共享</td><td>不可能</td><td>文件系统天然共享</td></tr>
+  <tr><td>可视化</td><td>扁平列表</td><td>依赖图</td></tr>
+</table>
+
+<h3 id="对应官方工具">对应官方工具</h3>
+<div class="card">
+  <div class="card-title">TaskCreateTool / TaskUpdateTool / TaskListTool / TaskGetTool</div>
+  <p>Claude Code 官方的四个任务工具直接对应这套设计。<code class="ic">TaskCreateTool</code> 创建任务 JSON 文件，<code class="ic">TaskUpdateTool</code> 更新状态并自动清理依赖，<code class="ic">TaskListTool</code> 列出所有任务并按状态过滤，<code class="ic">TaskGetTool</code> 读取单个任务详情。</p>
+</div>
+
+<div class="callout green">
+  <strong>关键洞察：</strong>任务系统不是"待办清单应用"——它是代理的外部记忆。上下文窗口是短期记忆，<code class="ic">.tasks/</code> 目录是长期记忆。代理通过读写文件来"记住"自己该做什么，即使上下文被完全压缩也不会丢失方向。
+</div>
+
+<!-- ================================================================ -->
+<!-- S08: Background Tasks                                             -->
+<!-- ================================================================ -->
+<h2 id="s08">S08: Background Tasks — 后台执行</h2>
+
+<h3 id="问题阻塞操作锁死循环">问题：阻塞操作锁死循环</h3>
+<p>
+  核心循环是单线程的：<code class="ic">user → LLM → tool → result → LLM</code>。当工具调用是一个长时间运行的操作时（比如 <code class="ic">npm install</code>、<code class="ic">pytest</code>、<code class="ic">docker build</code>），整个循环都被阻塞了。模型在等待工具结果返回，用户在等待模型响应，什么都做不了。
+</p>
+
+<div class="diagram">阻塞场景：
+
+时间线 ──────────────────────────────────────────────►
+
+主循环:  [LLM调用] → [BashTool: npm install] ............等待 45s............. [结果返回] → [LLM调用]
+                     ▲                                                        ▲
+                     │                                                        │
+                     └── 整个循环在这里卡住了 ──────────────────────────────────┘
+                         模型不能做任何其他事情
+                         用户不能输入任何内容</div>
+
+<h3 id="解法守护线程-通知队列">解法：守护线程 + 通知队列</h3>
+<p>
+  设计思路：不在主循环里等子进程结束，而是把它扔到后台守护线程执行。主循环立即收到一个"已启动"的确认，然后继续做其他事情。当后台任务完成时，结果进入一个通知队列。每次 LLM 调用之前，主循环会 <strong>drain（排空）</strong>通知队列，把所有完成的后台任务结果一次性注入上下文。
+</p>
+
+<div class="diagram">非阻塞场景：
+
+时间线 ──────────────────────────────────────────────►
+
+主循环:  [LLM] → [启动后台npm install] → [确认:已启动] → [LLM] → [做其他事] → [drain队列] → [LLM拿到npm结果]
+                         │                                                      ▲
+守护线程:                └── npm install 在后台执行 ────────────── 完成 ──► 通知队列 ─┘
+
+关键：主循环没有被阻塞，可以继续处理其他工具调用</div>
+
+<h3 id="单线程循环-并行子进程">单线程循环 + 并行子进程</h3>
+<p>这个设计非常巧妙——它保持了核心循环的单线程简单性，同时获得了并行执行的能力：</p>
+
+<table class="tbl">
+  <tr><th>组件</th><th>线程模型</th><th>职责</th></tr>
+  <tr><td>核心循环</td><td>单线程（主线程）</td><td>LLM 调用、工具分发、上下文管理</td></tr>
+  <tr><td>后台任务</td><td>守护线程（每任务一个）</td><td>执行长时间子进程，完成后写入通知队列</td></tr>
+  <tr><td>通知队列</td><td>线程安全队列</td><td>存放已完成的后台任务结果</td></tr>
+  <tr><td>Drain 操作</td><td>在主线程中执行</td><td>每轮 LLM 调用前清空队列、注入结果</td></tr>
+</table>
+
+<div class="flow">
+  <div class="flow-node">BashTool(run_in_background=true)</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">spawn 守护线程</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">返回 task_id</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">主循环继续</div>
+</div>
+<div class="flow">
+  <div class="flow-node">守护线程: 子进程完成</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">结果入队列</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">下轮 drain</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">LLM 读到结果</div>
+</div>
+
+<h3 id="对比同步-vs-后台">对比：同步 vs 后台</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>同步执行（默认）</th><th>后台执行（S08）</th></tr>
+  <tr><td>主循环状态</td><td>阻塞等待</td><td>立即继续</td></tr>
+  <tr><td>并行度</td><td>一次一个工具</td><td>多个子进程同时运行</td></tr>
+  <tr><td>结果获取</td><td>立即返回</td><td>下一轮 drain 时注入</td></tr>
+  <tr><td>适用场景</td><td>快速操作（读文件、搜索）</td><td>慢操作（安装、测试、构建）</td></tr>
+  <tr><td>复杂度</td><td>简单</td><td>需要队列管理和 drain 机制</td></tr>
+</table>
+
+<h3 id="对应官方工具-2">对应官方工具</h3>
+<div class="card">
+  <div class="card-title">BashTool (run_in_background) + TaskOutputTool</div>
+  <p><code class="ic">BashTool</code> 的 <code class="ic">run_in_background</code> 参数直接启用后台执行模式，返回一个任务 ID。<code class="ic">TaskOutputTool</code> 用于主动查询后台任务的输出——不需要等 drain，代理可以随时检查某个后台任务的进度和结果。</p>
+</div>
+
+<div class="callout green">
+  <strong>关键洞察：</strong>后台任务不是"多线程编程"——核心循环始终是单线程的。它只是把"等待子进程"这个操作从主线程移到了守护线程。模型的思考和决策仍然是串行的，但I/O等待可以并行。这是经典的异步I/O模式。
+</div>
+
+<!-- ================================================================ -->
+<!-- S09: Agent Teams                                                  -->
+<!-- ================================================================ -->
+<h2 id="s09">S09: Agent Teams — 持久化团队</h2>
+
+<h3 id="问题subagent-是一次性的">问题：Subagent 是一次性的</h3>
+<p>
+  S06 引入的 Subagent（通过 <code class="ic">AgentTool</code>）可以让模型启动一个子模型来做特定任务。但 Subagent 有一个根本限制——它是临时的。调用完成后，子代理就消失了，没有任何跨调用的记忆。如果你需要一个"前端专家"反复处理 UI 任务，每次都得从零开始解释它的角色。
+</p>
+
+<div class="diagram">Subagent 模型（S06）：
+
+主代理 ──► 创建子代理 ──► 子代理执行 ──► 返回结果 ──► 子代理销毁
+                                                        ↑
+主代理 ──► 创建子代理 ──► 子代理执行 ──► 返回结果 ──► 子代理销毁
+                                                        ↑
+          每次都是全新的子代理                      没有记忆传承
+          每次都要重新注入角色                      没有上下文积累</div>
+
+<h3 id="解法teammatemanager-messagebus">解法：TeammateManager + MessageBus</h3>
+<p>
+  从"一次性子代理"升级到"持久化团队成员"。核心有两个组件：
+</p>
+<ul>
+  <li><strong>TeammateManager：</strong>管理团队成员的生命周期——创建、查询、关闭。每个 Teammate 有自己的身份、系统提示词和独立的上下文窗口。</li>
+  <li><strong>MessageBus：</strong>基于 JSONL 文件的收件箱系统。每个 Teammate 有自己的收件箱文件（<code class="ic">.messages/{teammate-id}.jsonl</code>），消息按行追加。</li>
+</ul>
+
+<pre><code><span class="cmt">// .messages/agent-frontend.jsonl — 前端代理的收件箱</span>
+{<span class="str">"type"</span>:<span class="str">"message"</span>, <span class="str">"from"</span>:<span class="str">"lead"</span>, <span class="str">"content"</span>:<span class="str">"请实现登录页面的 UI"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T10:00:00Z"</span>}
+{<span class="str">"type"</span>:<span class="str">"message"</span>, <span class="str">"from"</span>:<span class="str">"agent-backend"</span>, <span class="str">"content"</span>:<span class="str">"API 端点已就绪: POST /auth/login"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T10:05:00Z"</span>}
+{<span class="str">"type"</span>:<span class="str">"broadcast"</span>, <span class="str">"from"</span>:<span class="str">"lead"</span>, <span class="str">"content"</span>:<span class="str">"提交前跑一次 lint"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T10:10:00Z"</span>}</code></pre>
+
+<h3 id="5-种消息类型">5 种消息类型</h3>
+<table class="tbl">
+  <tr><th>类型</th><th>方向</th><th>用途</th></tr>
+  <tr>
+    <td><code class="ic">message</code></td>
+    <td>点对点</td>
+    <td>普通通信——分配任务、汇报进度、请求信息</td>
+  </tr>
+  <tr>
+    <td><code class="ic">broadcast</code></td>
+    <td>一对多</td>
+    <td>Lead 向所有队友广播指令（例如"全员停止，需求变了"）</td>
+  </tr>
+  <tr>
+    <td><code class="ic">shutdown_request</code></td>
+    <td>Lead → Teammate</td>
+    <td>请求队友优雅关闭——完成手头任务后退出</td>
+  </tr>
+  <tr>
+    <td><code class="ic">shutdown_response</code></td>
+    <td>Teammate → Lead</td>
+    <td>队友确认关闭，返回最终状态汇报</td>
+  </tr>
+  <tr>
+    <td><code class="ic">plan_approval_response</code></td>
+    <td>Lead → Teammate</td>
+    <td>Lead 审批队友提交的执行计划（approved/rejected）</td>
+  </tr>
+</table>
+
+<h3 id="teammate-生命周期">Teammate 生命周期</h3>
+<div class="diagram">Teammate 生命周期状态机：
+
+                 ┌──────────────────────────────────────────┐
+                 │                                          │
+                 ▼                                          │
+  ┌─────────┐  收到消息  ┌─────────┐  任务完成  ┌─────────┐ │
+  │  spawn  │ ────────► │ working │ ────────► │  idle   │─┘
+  └─────────┘           └─────────┘           └────┬────┘
+                              ▲                    │
+                              │    收到新消息       │
+                              └────────────────────┘
+                                                   │
+                                          收到 shutdown_request
+                                                   │
+                                                   ▼
+                                             ┌──────────┐
+                                             │ shutdown  │
+                                             └──────────┘
+
+关键状态转换：
+  spawn    → 创建进程，注入身份和系统提示词
+  working  → 正在执行任务，有独立上下文
+  idle     → 任务完成，等待新消息（这是 S11 的扩展点）
+  shutdown → 优雅退出，提交最终汇报</div>
+
+<h3 id="对比subagent-vs-teammate">对比：Subagent vs Teammate</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>Subagent（S06）</th><th>Teammate（S09）</th></tr>
+  <tr><td>生命周期</td><td>单次调用</td><td>持久存在，跨多次任务</td></tr>
+  <tr><td>记忆</td><td>调用结束即丢失</td><td>独立上下文窗口，持续积累</td></tr>
+  <tr><td>通信方式</td><td>调用参数 → 返回值</td><td>JSONL 消息收件箱</td></tr>
+  <tr><td>身份</td><td>每次重新注入</td><td>创建时固定，压缩后重注入</td></tr>
+  <tr><td>并行</td><td>串行调用</td><td>多 Teammate 并行工作</td></tr>
+  <tr><td>关闭</td><td>自动（返回即销毁）</td><td>需要 shutdown 协议</td></tr>
+</table>
+
+<h3 id="对应官方工具-2-2">对应官方工具</h3>
+<div class="card">
+  <div class="card-title">TeamCreateTool + SendMessageTool</div>
+  <p><code class="ic">TeamCreateTool</code> 创建一个持久化的团队成员，指定其身份（名称、角色描述、系统提示词）。<code class="ic">SendMessageTool</code> 向指定队友发送消息。官方实现中，消息总线和收件箱是内建的，不需要手动管理 JSONL 文件。</p>
+</div>
+
+<div class="callout green">
+  <strong>关键洞察：</strong>从 Subagent 到 Teammate 的升级，本质是把"函数调用"变成了"进程间通信"。Subagent 是同步的请求-响应，Teammate 是异步的消息传递。这让多个代理可以真正并行工作，而不是排队等主代理分配。
+</div>
+
+<!-- ================================================================ -->
+<!-- S10: Team Protocols                                               -->
+<!-- ================================================================ -->
+<h2 id="s10">S10: Team Protocols — request-response 协议</h2>
+
+<h3 id="问题缺少结构化握手">问题：缺少结构化握手</h3>
+<p>
+  S09 的 MessageBus 可以传递任意消息，但某些关键操作需要结构化的请求-响应模式。两个典型场景：
+</p>
+<ul>
+  <li><strong>优雅关机：</strong>Lead 想关掉一个 Teammate，但不能直接杀进程——队友可能正在写文件。需要一个"请求关机 → 确认关机"的握手。</li>
+  <li><strong>计划审批：</strong>Teammate 制定了一个执行计划，需要 Lead 审核通过才能执行。需要一个"提交计划 → 批准/拒绝"的握手。</li>
+</ul>
+
+<div class="diagram">没有协议时的混乱：
+
+Lead: "请关闭"
+Teammate: (正在写文件，没看到消息)
+Lead: (等了10秒) "关了没？"
+Teammate: "还没，我在写文件"
+Lead: "好的等你"
+Teammate: "好了，可以关了"
+Lead: "那关吧"
+
+── 纯文本通信，没有状态追踪，容易出错 ──
+
+有协议时的精确：
+
+Lead → shutdown_request(id=req-001)
+Teammate: 完成当前操作
+Teammate → shutdown_response(correlation_id=req-001, status=done)
+Lead: 确认关闭，清理资源</div>
+
+<h3 id="解法correlation-id-fsm">解法：Correlation ID + FSM</h3>
+<p>
+  两个协议（关机和计划审批）使用完全相同的模式：
+</p>
+
+<ol>
+  <li><strong>请求方</strong>发送一条带有唯一 <code class="ic">correlation_id</code> 的请求消息</li>
+  <li><strong>请求方</strong>在本地创建一个有限状态机（FSM），初始状态为 <code class="ic">pending</code></li>
+  <li><strong>响应方</strong>收到请求后处理，发回带有相同 <code class="ic">correlation_id</code> 的响应</li>
+  <li><strong>请求方</strong>根据响应内容将 FSM 转换为 <code class="ic">approved</code>、<code class="ic">rejected</code> 或 <code class="ic">done</code></li>
+</ol>
+
+<div class="diagram">Correlation ID + FSM 模式：
+
+     Lead (请求方)                        Teammate (响应方)
+         │                                     │
+         │  shutdown_request                   │
+         │  { correlation_id: "req-001" }      │
+         │ ──────────────────────────────────►  │
+         │                                     │
+    FSM: pending                          收到请求
+         │                                完成手头工作
+         │                                     │
+         │  shutdown_response                  │
+         │  { correlation_id: "req-001",       │
+         │    status: "done" }                 │
+         │ ◄──────────────────────────────────  │
+         │                                     │
+    FSM: pending → done                   进程退出
+         │
+    确认关闭，清理资源
+
+
+  ┌─────────┐   收到响应(approved)   ┌──────────┐
+  │ pending │ ────────────────────► │ approved │
+  └─────────┘                       └──────────┘
+       │        收到响应(rejected)   ┌──────────┐
+       └──────────────────────────► │ rejected │
+                                    └──────────┘</div>
+
+<h3 id="两个协议的统一模式">两个协议的统一模式</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>关机协议</th><th>计划审批协议</th></tr>
+  <tr><td>请求消息类型</td><td><code class="ic">shutdown_request</code></td><td><code class="ic">plan_approval_request</code></td></tr>
+  <tr><td>响应消息类型</td><td><code class="ic">shutdown_response</code></td><td><code class="ic">plan_approval_response</code></td></tr>
+  <tr><td>请求方</td><td>Lead</td><td>Teammate</td></tr>
+  <tr><td>响应方</td><td>Teammate</td><td>Lead</td></tr>
+  <tr><td>FSM 终态</td><td><code class="ic">done</code></td><td><code class="ic">approved</code> / <code class="ic">rejected</code></td></tr>
+  <tr><td>超时处理</td><td>强制终止</td><td>默认拒绝</td></tr>
+  <tr><td>关键保证</td><td>队友有机会完成手头任务</td><td>危险操作必须 Lead 审批</td></tr>
+</table>
+
+<h3 id="对比无协议-vs-有协议">对比：无协议 vs 有协议</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>纯文本消息（S09）</th><th>结构化协议（S10）</th></tr>
+  <tr><td>关联性</td><td>没有——不知道回复对应哪个请求</td><td>correlation_id 精确关联</td></tr>
+  <tr><td>状态追踪</td><td>靠 LLM 记忆</td><td>FSM 确定性追踪</td></tr>
+  <tr><td>超时</td><td>无法检测</td><td>FSM 可设置超时自动转态</td></tr>
+  <tr><td>可靠性</td><td>依赖 LLM 正确解析自然语言</td><td>结构化 JSON，机器可解析</td></tr>
+</table>
+
+<h3 id="对应官方工具-2-2-2">对应官方工具</h3>
+<div class="card">
+  <div class="card-title">SendMessageTool 的结构化消息类型</div>
+  <p>官方 <code class="ic">SendMessageTool</code> 不仅支持普通文本消息，还内置了结构化消息类型。<code class="ic">shutdown_request</code>、<code class="ic">shutdown_response</code>、<code class="ic">plan_approval_response</code> 等都是 <code class="ic">SendMessageTool</code> 的消息类型参数。协议逻辑（correlation ID 匹配、状态转换）由框架自动处理。</p>
+</div>
+
+<div class="callout green">
+  <strong>关键洞察：</strong>Correlation ID + FSM 是分布式系统的经典模式——和微服务里的 Saga 模式、数据库的两阶段提交本质相同。在 AI 代理系统中引入这个模式，意味着多代理协作不再依赖 LLM 的"理解能力"，而是靠确定性的状态机保证正确性。
+</div>
+
+<!-- ================================================================ -->
+<!-- S11: Autonomous Agents                                            -->
+<!-- ================================================================ -->
+<h2 id="s11">S11: Autonomous Agents — 自组织</h2>
+
+<h3 id="问题被动等待指令">问题：被动等待指令</h3>
+<p>
+  到 S10 为止，Teammate 虽然是持久化的，但仍然是被动的——它只在收到消息时才行动。如果 Lead 忘了分配任务，或者 Lead 自己也在忙，Teammate 就一直 idle 着，白白浪费算力。
+</p>
+
+<div class="diagram">被动模式（S09-S10）：
+
+Teammate-A:  [idle] .... [idle] .... [idle] .... 收到消息 [working] .... [idle] .... [idle]
+Teammate-B:  [idle] .... [idle] .... [idle] .... [idle] .... [idle] .... 收到消息 [working]
+
+Lead:        [分配A] .............. [忙别的] .............. [分配B] ................
+
+问题：大量 idle 时间被浪费
+Lead 成为瓶颈——所有任务都要经过 Lead 分配</div>
+
+<h3 id="解法idle-poll-循环">解法：Idle Poll 循环</h3>
+<p>
+  给每个 Teammate 加一个 idle poll 循环：当 Teammate 进入 <code class="ic">idle</code> 状态后，不是傻等消息，而是每隔 5 秒主动扫描任务看板（<code class="ic">.tasks/</code> 目录），查找满足以下条件的任务：
+</p>
+<ul>
+  <li><code class="ic">status == "pending"</code>——还没开始</li>
+  <li><code class="ic">owner == null</code>——没有被认领</li>
+  <li><code class="ic">blockedBy.length == 0</code>——没有前置依赖</li>
+</ul>
+<p>
+  如果找到这样的任务，Teammate 直接把 <code class="ic">owner</code> 字段写上自己的 ID，将 <code class="ic">status</code> 改为 <code class="ic">in_progress</code>，然后开始执行。无需等 Lead 分配。
+</p>
+
+<div class="diagram">自主模式（S11）：
+
+Teammate-A:  [idle] → 扫描任务板 → 发现 task-003 → 认领 → [working on task-003] → [完成] → [idle] → 扫描 → ...
+Teammate-B:  [idle] → 扫描任务板 → 发现 task-004 → 认领 → [working on task-004] → ...
+
+             ┌─────────────────────────────────┐
+             │         .tasks/ 任务看板          │
+             │                                  │
+             │  task-001: completed ✓            │
+             │  task-002: in_progress (agent-C)  │
+             │  task-003: pending, no owner ←── A 认领  │
+             │  task-004: pending, no owner ←── B 认领  │
+             │  task-005: pending, blockedBy:[002] (等待) │
+             └─────────────────────────────────┘
+
+Lead 不再是瓶颈——队友自己找活干</div>
+
+<h3 id="idle-poll-的参数">Idle Poll 的参数</h3>
+<table class="tbl">
+  <tr><th>参数</th><th>值</th><th>含义</th></tr>
+  <tr><td>轮询间隔</td><td>5 秒</td><td>每 5 秒扫描一次任务看板</td></tr>
+  <tr><td>超时</td><td>60 秒</td><td>连续 60 秒没找到新任务，Teammate 自动进入 shutdown</td></tr>
+  <tr><td>认领方式</td><td>原子写文件</td><td>通过写 JSON 文件的 owner 字段来认领，利用文件系统的原子性避免冲突</td></tr>
+</table>
+
+<h3 id="identity-re-injection压缩后的身份恢复">Identity Re-injection：压缩后的身份恢复</h3>
+<p>
+  自主代理面临一个独特的挑战：它们长时间运行，上下文会被反复压缩。压缩后，代理可能忘记自己是谁、自己的角色是什么。解决方案是 <strong>Identity Re-injection</strong>——每次压缩后，自动把代理的身份信息（名称、角色、能力描述）重新注入到上下文开头。
+</p>
+
+<div class="flow">
+  <div class="flow-node">上下文满了</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">触发压缩</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">摘要替换旧消息</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">注入身份信息</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">代理继续工作</div>
+</div>
+
+<pre><code><span class="cmt">// 压缩后重新注入的身份信息</span>
+{
+  <span class="str">"role"</span>: <span class="str">"system"</span>,
+  <span class="str">"content"</span>: <span class="str">"你是 agent-frontend，专注于前端开发。\n你的能力：React、TypeScript、CSS。\n你的当前任务：task-003（实现登录页面）。\n你的团队：lead、agent-backend、agent-test。"</span>
+}</code></pre>
+
+<h3 id="对比被动-vs-自主">对比：被动 vs 自主</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>被动 Teammate（S09-S10）</th><th>自主 Agent（S11）</th></tr>
+  <tr><td>任务分配</td><td>Lead 手动分配</td><td>自己从看板认领</td></tr>
+  <tr><td>idle 行为</td><td>等待消息</td><td>主动扫描任务</td></tr>
+  <tr><td>Lead 角色</td><td>任务分配器（瓶颈）</td><td>计划制定者（只管创建任务）</td></tr>
+  <tr><td>扩展性</td><td>受限于 Lead 的分配速度</td><td>队友越多，并行度越高</td></tr>
+  <tr><td>压缩处理</td><td>丢失身份</td><td>Identity Re-injection 恢复身份</td></tr>
+</table>
+
+<h3 id="对应官方工具-2-2-2-2">对应官方工具</h3>
+<div class="card">
+  <div class="card-title">Agent Swarms 的自主任务认领机制</div>
+  <p>Claude Code 官方的 Agent Swarms 功能直接实现了 S11 描述的自组织模式。多个代理实例并行运行，通过共享的任务系统自动认领和执行任务。Lead 只需要创建任务计划，不需要手动分配每个任务给具体的代理。</p>
+</div>
+
+<div class="callout green">
+  <strong>关键洞察：</strong>S11 的核心转变是从"推模型"（Lead 推送任务给队友）到"拉模型"（队友主动拉取任务）。这和现实世界的敏捷开发一样——好的团队不需要经理分配每个任务，团队成员自己从看板上拿任务。Lead 的角色从"调度器"变成了"规划者"。
+</div>
+
+<!-- ================================================================ -->
+<!-- S12: Worktree + Task Isolation                                    -->
+<!-- ================================================================ -->
+<h2 id="s12">S12: Worktree + Task Isolation — 目录隔离</h2>
+
+<h3 id="问题共享目录导致文件冲突">问题：共享目录导致文件冲突</h3>
+<p>
+  到 S11 为止，多个 Teammate 都在同一个工作目录里操作。这在实际中会导致严重的文件冲突——agent-A 正在修改 <code class="ic">src/auth.ts</code>，agent-B 同时也在改同一个文件。结果就是覆盖、冲突、代码丢失。
+</p>
+
+<div class="diagram">冲突场景：
+
+Agent-A: 打开 src/auth.ts → 修改第30行 → 保存
+Agent-B: 打开 src/auth.ts → 修改第45行 → 保存 (覆盖了 A 的修改！)
+
+      ┌─── 共享工作目录 ───┐
+      │  src/               │
+      │    auth.ts  ← A 在改│
+      │    auth.ts  ← B 也在改│  ← 冲突！
+      │    db.ts            │
+      │    api.ts           │
+      └────────────────────┘</div>
+
+<h3 id="解法git-worktree-绑定任务-id">解法：Git Worktree 绑定任务 ID</h3>
+<p>
+  <strong>Git Worktree</strong> 是 Git 的一个内置功能——它允许从同一个仓库创建多个工作目录，每个工作目录有自己独立的分支和文件。S12 的设计是：每个任务绑定一个 Worktree，实现完全的文件隔离。
+</p>
+
+<div class="diagram">隔离方案：
+
+      ┌─── .worktrees/task-001/ ───┐    ┌─── .worktrees/task-002/ ───┐
+      │  branch: task-001          │    │  branch: task-002          │
+      │  src/                      │    │  src/                      │
+      │    auth.ts  ← A 独占修改   │    │    auth.ts  ← B 独占修改   │
+      │    db.ts                   │    │    db.ts                   │
+      │    api.ts                  │    │    api.ts                  │
+      └───────────────────────────┘    └───────────────────────────┘
+              │                                   │
+              └───────── 互不干扰 ────────────────┘
+                         │
+                   最后通过 Git merge 合并</div>
+
+<h3 id="双平面架构">双平面架构</h3>
+<p>S12 引入了一个清晰的架构分离——控制平面和执行平面：</p>
+
+<table class="tbl">
+  <tr><th>平面</th><th>目录</th><th>内容</th><th>角色</th></tr>
+  <tr>
+    <td><strong>Control Plane（控制平面）</strong></td>
+    <td><code class="ic">.tasks/</code></td>
+    <td>任务 JSON 文件、状态、依赖关系</td>
+    <td>描述"要做什么"——任务的元数据和协调信息</td>
+  </tr>
+  <tr>
+    <td><strong>Execution Plane（执行平面）</strong></td>
+    <td><code class="ic">.worktrees/</code></td>
+    <td>每个任务的独立工作目录、Git 分支</td>
+    <td>执行"怎么做"——实际的代码修改在这里发生</td>
+  </tr>
+</table>
+
+<div class="diagram">双平面架构图：
+
+┌──────────────────────────────────────────────────────────┐
+│                    Control Plane                         │
+│                                                          │
+│   .tasks/                                                │
+│   ├── task-001.json  { status: "in_progress", ... }      │
+│   ├── task-002.json  { status: "pending", ... }          │
+│   └── task-003.json  { status: "completed", ... }        │
+│                                                          │
+│   协调层：任务状态、依赖关系、Owner 分配                     │
+├──────────────────────────────────────────────────────────┤
+│                   Execution Plane                        │
+│                                                          │
+│   .worktrees/                                            │
+│   ├── task-001/     ← Agent-A 的独立工作目录               │
+│   │   └── (完整的项目文件副本，branch: task-001)            │
+│   ├── task-002/     ← Agent-B 的独立工作目录               │
+│   │   └── (完整的项目文件副本，branch: task-002)            │
+│   └── events.jsonl  ← 事件流                              │
+│                                                          │
+│   隔离层：每个任务独立修改文件，互不干扰                       │
+└──────────────────────────────────────────────────────────┘</div>
+
+<h3 id="events-流">Events 流</h3>
+<p>
+  <code class="ic">.worktrees/events.jsonl</code> 记录了所有 Worktree 相关的事件——创建、切换、合并、删除。这是一个只追加的日志文件，用于审计和崩溃恢复。
+</p>
+
+<pre><code>{<span class="str">"event"</span>:<span class="str">"worktree_created"</span>, <span class="str">"taskId"</span>:<span class="str">"task-001"</span>, <span class="str">"branch"</span>:<span class="str">"task-001"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T10:00:00Z"</span>}
+{<span class="str">"event"</span>:<span class="str">"agent_entered"</span>, <span class="str">"taskId"</span>:<span class="str">"task-001"</span>, <span class="str">"agentId"</span>:<span class="str">"agent-frontend"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T10:00:01Z"</span>}
+{<span class="str">"event"</span>:<span class="str">"agent_exited"</span>, <span class="str">"taskId"</span>:<span class="str">"task-001"</span>, <span class="str">"agentId"</span>:<span class="str">"agent-frontend"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T11:30:00Z"</span>}
+{<span class="str">"event"</span>:<span class="str">"worktree_merged"</span>, <span class="str">"taskId"</span>:<span class="str">"task-001"</span>, <span class="str">"branch"</span>:<span class="str">"task-001"</span>, <span class="str">"ts"</span>:<span class="str">"2025-01-15T11:35:00Z"</span>}</code></pre>
+
+<h3 id="崩溃恢复从磁盘状态重建">崩溃恢复：从磁盘状态重建</h3>
+<p>
+  如果代理进程崩溃了怎么办？S12 的设计保证了完全可恢复——因为所有状态都在磁盘上：
+</p>
+
+<ol>
+  <li><strong>扫描 <code class="ic">.tasks/</code></strong>——重建任务图，知道哪些任务在进行中</li>
+  <li><strong>扫描 <code class="ic">.worktrees/</code></strong>——知道哪些 Worktree 存在、对应哪个任务</li>
+  <li><strong>读取 <code class="ic">events.jsonl</code></strong>——知道崩溃前的最后状态</li>
+  <li><strong>恢复</strong>——对于 <code class="ic">in_progress</code> 状态的任务，重新启动代理进入对应的 Worktree 继续工作</li>
+</ol>
+
+<div class="flow">
+  <div class="flow-node">进程崩溃</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">重启</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">扫描 .tasks/</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">扫描 .worktrees/</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">重建状态</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-node">继续执行</div>
+</div>
+
+<h3 id="对比共享目录-vs-worktree-隔离">对比：共享目录 vs Worktree 隔离</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>共享目录（S09-S11）</th><th>Worktree 隔离（S12）</th></tr>
+  <tr><td>文件冲突</td><td>频繁发生</td><td>不可能（物理隔离）</td></tr>
+  <tr><td>Git 操作</td><td>所有代理共用一个分支</td><td>每个任务独立分支</td></tr>
+  <tr><td>合并策略</td><td>需要锁或协调</td><td>标准 Git merge/rebase</td></tr>
+  <tr><td>回滚</td><td>困难——修改交织</td><td>简单——删除 Worktree 即可</td></tr>
+  <tr><td>崩溃恢复</td><td>状态不确定</td><td>从磁盘完全重建</td></tr>
+  <tr><td>磁盘占用</td><td>一份</td><td>每任务一份副本（Git 优化后较小）</td></tr>
+</table>
+
+<h3 id="对应官方工具-2-2-2-2-2">对应官方工具</h3>
+<div class="card">
+  <div class="card-title">EnterWorktreeTool / ExitWorktreeTool</div>
+  <p><code class="ic">EnterWorktreeTool</code> 创建或进入一个与任务绑定的 Git Worktree，自动创建对应分支。<code class="ic">ExitWorktreeTool</code> 退出 Worktree 并回到主目录。官方实现自动处理了 Worktree 的创建、分支管理和清理，代理只需要说"进入"和"退出"。</p>
+</div>
+
+<div class="callout green">
+  <strong>关键洞察：</strong>S12 的双平面架构体现了一个重要的工程原则——控制平面和数据平面分离。<code class="ic">.tasks/</code> 是控制平面（协调信息），<code class="ic">.worktrees/</code> 是数据平面（实际执行）。这和 Kubernetes 的架构思想一致——etcd 存控制状态，Pod 做实际计算。分离后，崩溃恢复变得简单，因为控制状态是独立且持久的。
+</div>
+
+<!-- ================================================================ -->
+<!-- 12 层叠加 — 全局视图                                               -->
+<!-- ================================================================ -->
+<h2 id="twelve-layers">12 层叠加 — 全局视图</h2>
+
+<p>
+  S01 到 S12 不是 12 个独立系统，而是逐层叠加在同一个核心循环上的 12 层能力。每一层都不替换下面的层，只是扩展。以下是从底到顶的完整视图：
+</p>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-block red" style="flex:1">S12: Worktree 隔离 — 每个任务独立目录和分支</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block red" style="flex:1">S11: 自主认领 — idle poll + 任务看板扫描</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block purple" style="flex:1">S10: 团队协议 — correlation ID + FSM 握手</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block purple" style="flex:1">S09: 持久化团队 — TeammateManager + JSONL 消息总线</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block blue" style="flex:1">S08: 后台执行 — 守护线程 + 通知队列 + drain</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block blue" style="flex:1">S07: 任务图 — 磁盘持久化 JSON + blockedBy DAG</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block green" style="flex:1">S06: Subagent — 子代理调用（一次性）</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block green" style="flex:1">S05: 上下文管理 — 压缩、摘要、滑动窗口</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block green" style="flex:1">S04: 权限系统 — allow/deny 规则 + 权限门控</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block gold" style="flex:1">S03: 工具系统 — schema 验证 + handler 执行</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block gold" style="flex:1">S02: System Prompt — 身份注入 + 行为规则</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block gold" style="flex:1">S01: 核心循环 — user → LLM → tool → result → LLM</div>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>层次解读：</strong>
+  <span style="color:var(--accent-gold)">金色层（S01-S03）</span>是基础设施——没有它们什么都跑不起来。
+  <span style="color:var(--accent-green)">绿色层（S04-S06）</span>是单代理增强——权限、上下文、子调用。
+  <span style="color:var(--accent-blue)">蓝色层（S07-S08）</span>是持久化——任务和执行不再是临时的。
+  <span style="color:var(--accent-purple)">紫色层（S09-S10）</span>是多代理通信——从独立到协作。
+  <span style="color:var(--accent-red)">红色层（S11-S12）</span>是自治——代理自主工作、互不干扰。
+</div>
+
+<div class="diagram">12 层叠加的核心不变量：
+
+无论叠加到第几层，底层的核心循环始终在运行：
+
+  ┌──────────────────────────────────────────────┐
+  │                                              │
+  │   user input                                 │
+  │      │                                       │
+  │      ▼                                       │
+  │   ┌─────┐    tool_use     ┌──────┐           │
+  │   │ LLM │ ──────────────► │ Tool │           │
+  │   │     │ ◄────────────── │      │           │
+  │   └─────┘   tool_result   └──────┘           │
+  │      │                                       │
+  │      ▼                                       │
+  │   assistant response                         │
+  │                                              │
+  └──────────────────────────────────────────────┘
+
+S07 给这个循环加了 .tasks/ 磁盘读写
+S08 给 Tool 加了后台执行模式
+S09 让多个循环实例通过消息总线通信
+S10 给通信加了结构化协议
+S11 让循环实例自己找任务
+S12 给每个实例一个独立的文件系统空间
+
+但循环本身——LLM 调用 Tool、Tool 返回结果——从未改变。</div>
+
+</div>
+</div></body>
+</html>
