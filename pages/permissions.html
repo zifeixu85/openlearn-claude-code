@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>权限系统 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u4e92\u52a8\u4f53\u9a8c",items:[
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"LIVE"},
+    {h:"pages/buddy-interactive.html",t:"Buddy \u5b9e\u9a8c\u5ba4",b:"PLAY"},
+    {h:"pages/challenges.html",t:"\u77e5\u8bc6\u95ef\u5173",b:"20\u5173"}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'\x3c/div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+      sh+='\x3c/div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){sb.classList.remove('hidden');document.body.classList.remove('sidebar-off');if(btn)btn.classList.remove('collapsed')}
+  else{sb.classList.add('hidden');document.body.classList.add('sidebar-off');if(btn)btn.classList.add('collapsed')}
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){items.push({level:2,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="H3"){items.push({level:3,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();if(txt.length<3)return;
+      var did=el.id;if(!did){did="d-"+items.length;el.id=did}
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2\x3c/div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='\x3c/div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+        th+='<div class="toc-children">';inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+      }
+    });
+    if(inGroup)th+='\x3c/div>';
+    rt.innerHTML=th;document.body.appendChild(rt);
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        tocAll.forEach(function(l){l.classList.remove("active")});
+        var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+        if(m){m.classList.add("active");var p=m.closest(".toc-children");if(p)p.classList.add("expanded");
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});}
+      }});
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(){var nx=a.nextElementSibling;if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded")});
+    });
+    var fg=rt.querySelector(".toc-children");if(fg)fg.classList.add("expanded");
+    // FAB for mobile
+    var fab=document.createElement("button");fab.className="toc-fab";fab.textContent="\u2630";fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){drt=rt.cloneNode(true);drt.id="drawerToc";drt.className="right-toc as-drawer";
+        var cl=document.createElement("div");cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed";cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);document.body.appendChild(drt);
+        var dov=document.createElement("div");dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");drt.classList.toggle("open");dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);updBtn(saved);
+window.toggleTheme=function(){var c=document.documentElement.getAttribute("data-theme")||"dark";var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("theme",n);updBtn(n)};
+function updBtn(t){var b=document.querySelector(".theme-toggle");if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark"}
+
+// ---- Search ----
+window.openSearch=function(){if(document.getElementById("searchModal"))return;var m=document.createElement("div");m.id="searchModal";m.className="search-modal";m.innerHTML='<div class="search-backdrop" onclick="closeSearch()">\x3c/div><div class="search-box"><input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus /><div id="searchResults" class="search-results">\x3c/div><div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c\x3c/div>\x3c/div>';document.body.appendChild(m);setTimeout(function(){m.classList.add("open")},10);var inp=document.getElementById("searchInput");inp.addEventListener("input",doSearch);inp.addEventListener("keydown",function(e){if(e.key==="Escape")closeSearch();if(e.key==="Enter"){var f=document.querySelector(".search-result-item");if(f)f.click()}if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();var its=document.querySelectorAll(".search-result-item");var cur=document.querySelector(".search-result-item.focused");var idx=-1;its.forEach(function(it,i){if(it===cur)idx=i});if(e.key==="ArrowDown")idx=Math.min(idx+1,its.length-1);else idx=Math.max(idx-1,0);its.forEach(function(it){it.classList.remove("focused")});if(its[idx]){its[idx].classList.add("focused");its[idx].scrollIntoView({block:"nearest"})}}})};
+window.closeSearch=function(){var m=document.getElementById("searchModal");if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}};
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}});
+var PAGES=[
+  {u:B+"index.html",t:"首页 "},
+  {u:B+"pages/arch-core.html",t:"启动与核心循环 启动流程 · QueryEngine · 上下文装配"},
+  {u:B+"pages/arch-runtime.html",t:"运行时机制 工具编排 · 状态管理 · 压缩 · 持久化"},
+  {u:B+"pages/tools-detail.html",t:"内置工具详解 42 个工具的用户价值与机制"},
+  {u:B+"pages/commands-detail.html",t:"斜杠命令手册 67 个命令完整功能说明"},
+  {u:B+"pages/context.html",t:"上下文体系 CLAUDE.md · Rules · Memory · Skills · MCP"},
+  {u:B+"pages/permissions.html",t:"权限系统 6 种模式 · 决策流程 · Hooks"},
+  {u:B+"pages/kairos-overview.html",t:"KAIROS 概述与激活 定位 · Feature Flags · 激活链路"},
+  {u:B+"pages/kairos-proactive.html",t:"KAIROS 主动模式 心跳 · Brief · 专属工具 · Dream"},
+  {u:B+"pages/kairos-coordinator.html",t:"Coordinator 编排 Worker 系统 · 远程架构 · vs OpenClaw"},
+  {u:B+"pages/buddy.html",t:"Buddy 电子宠物 18 物种 · 5 稀有度 · 确定性生成"},
+  {u:B+"pages/voice-vim.html",t:"语音 · Vim · 快捷键 三种输入模式"},
+  {u:B+"pages/remote-bridge.html",t:"远程 · IDE Bridge SSH 隧道 · JWT 双向通信"},
+  {u:B+"pages/plugin-skills.html",t:"插件 · 技能 Plugin 生命周期 · Skills 加载"},
+  {u:B+"pages/memory-system.html",t:"记忆系统 5 种记忆机制全景"},
+  {u:B+"pages/analytics-policy.html",t:"分析 · 合规 Feature Flags · 遥测 · MDM"},
+  {u:B+"pages/ink-ui.html",t:"终端 UI Ink 框架 · 390+ 组件"},
+  {u:B+"pages/internals.html",t:"内部机制 迁移 · 入口点 · Schemas · 费用"},
+  {u:B+"pages/learn-s01.html",t:"S01: Agent Loop 一个循环 + Bash = 一个 Agent"},
+  {u:B+"pages/learn-s02.html",t:"S02: Tool Use dispatch map 让模型长出手臂"},
+  {u:B+"pages/learn-s03.html",t:"S03: TodoWrite 让 Agent 学会做计划"},
+  {u:B+"pages/learn-s04.html",t:"S04: Subagent 用上下文隔离保持主线清晰"},
+  {u:B+"pages/learn-s05.html",t:"S05: Skill Loading 按需加载的知识库"},
+  {u:B+"pages/learn-s06.html",t:"S06: Context Compact 三层压缩保持 Agent 不失忆"},
+  {u:B+"pages/learn-s07.html",t:"S07: Task System 持久化任务图"},
+  {u:B+"pages/learn-s08.html",t:"S08: Background Tasks 后台执行不阻塞"},
+  {u:B+"pages/learn-s09.html",t:"S09: Agent Teams 持久化团队 + JSONL 邮箱"},
+  {u:B+"pages/learn-s10.html",t:"S10: Team Protocols request-response 协议"},
+  {u:B+"pages/learn-s11.html",t:"S11: Autonomous Agents 自组织与自动认领"},
+  {u:B+"pages/learn-s12.html",t:"S12: Worktree Isolation Git Worktree 目录隔离"},
+  {u:B+"pages/glossary.html",t:"术语表 37 个核心术语完整解释"},
+  {u:B+"pages/simulator.html",t:"Agent 循环模拟器 交互"},
+  {u:B+"pages/buddy-interactive.html",t:"Buddy 实验室 精灵 生成器"},
+  {u:B+"pages/hidden-behaviors.html",t:"隐藏行为 反蒸馏 卧底 挛败感检测 anti-distillation undercover frustration"},
+  {u:B+"pages/modular-prompts.html",t:"模块化系统提示 prompt 110 A/B"},
+  {u:B+"pages/agentic-patterns.html",t:"Agent 设计模式 ULTRAPLAN feature flags 安全绕过"}
+];
+function doSearch(){var q=document.getElementById("searchInput").value.trim().toLowerCase();var res=document.getElementById("searchResults");if(!q){res.innerHTML="";return}var hits=[];var pw2=document.querySelector(".page-wrap");if(pw2){pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){var txt=el.textContent||"";if(txt.toLowerCase().indexOf(q)>-1){var id=el.id||(el.closest&&el.closest("[id]")?el.closest("[id]").id:"");hits.push({text:txt.substring(0,120),id:id,local:true})}})}PAGES.forEach(function(pg){if(pg.t.toLowerCase().indexOf(q)>-1)hits.push({text:pg.t,url:pg.u,local:false})});var seen=new Set();var html="";var count=0;hits.forEach(function(h){if(count>=12)return;var key=h.text.substring(0,50);if(seen.has(key))return;seen.add(key);count++;if(h.local&&h.id){html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><span class="sr-type">\u672c\u9875\x3c/span>'+esc2(h.text)+'\x3c/div>'}else if(!h.local){html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'"><span class="sr-type">\u9875\u9762\x3c/span>'+esc2(h.text)+'\x3c/div>'}});if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c\x3c/div>';res.innerHTML=html}
+function esc2(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag official">OFFICIAL SOURCE ANALYSIS</div>
+<h1>权限系统</h1>
+<p class="subtitle">6 种权限模式详细对比、权限决策的多源竞争机制、Plan Mode 工作流、Allow/Deny 规则、Hooks 系统。</p>
+
+<h2 id="part2">Part 2: 权限系统</h2>
+<p>上下文决定 Claude 「知道什么」，权限决定 Claude 「能做什么」。权限系统的核心职责是在模型的自主性和用户的安全感之间找到平衡点。</p>
+
+<!-- ==================== 6 种权限模式 ==================== -->
+
+<h2 id="permission-modes">1. 六种权限模式的详细对比</h2>
+
+<p>Claude Code 提供 6 种预设的权限模式，覆盖从「极度保守」到「完全放行」的全部频谱。你可以通过 <code class="ic">--permission-mode</code> 启动参数或 <code class="ic">/config</code> 中设置。</p>
+
+<table class="tbl">
+  <tr>
+    <th>模式</th>
+    <th>自动批准</th>
+    <th>需要确认</th>
+    <th>适用场景</th>
+  </tr>
+  <tr>
+    <td><code class="ic">default</code></td>
+    <td>只有读文件</td>
+    <td>所有写操作、所有命令执行</td>
+    <td>初次使用、高安全要求项目</td>
+  </tr>
+  <tr>
+    <td><code class="ic">acceptEdits</code></td>
+    <td>读文件 + 文件编辑</td>
+    <td>命令执行、文件删除</td>
+    <td>信任 Claude 改代码，但不信任它跑命令</td>
+  </tr>
+  <tr>
+    <td><code class="ic">plan</code></td>
+    <td>读 + 探索命令 + 写计划文档</td>
+    <td>修改业务代码、执行副作用命令</td>
+    <td>让 Claude 先研究再提方案，你审批后才执行</td>
+  </tr>
+  <tr>
+    <td><code class="ic">auto</code></td>
+    <td>全部动作 + classifier 安全检查</td>
+    <td>仅 classifier 认为危险的操作</td>
+    <td>日常开发、信任度高的场景</td>
+  </tr>
+  <tr>
+    <td><code class="ic">dontAsk</code></td>
+    <td>仅预定义的动作列表</td>
+    <td>超出预定义范围的一切</td>
+    <td>CI/CD、自动化流程中的精确控制</td>
+  </tr>
+  <tr>
+    <td><code class="ic">bypassPermissions</code></td>
+    <td>一切操作全部放行</td>
+    <td>无</td>
+    <td>隔离容器、一次性环境（<strong>慎用</strong>）</td>
+  </tr>
+</table>
+
+<h3 id="各模式详解">各模式详解</h3>
+
+<details>
+<summary><code class="ic">default</code> — 最保守 <span class="badge">推荐新手</span></summary>
+<div class="details-body">
+  <p>只有纯读操作（FileRead、GrepTool、GlobTool 等）被自动批准。所有写操作（编辑文件、创建文件、删除文件）和所有命令执行（Bash）都需要用户逐一确认。</p>
+  <p><strong>体验：</strong>非常安全，但频繁弹出确认框会打断工作流。适合刚开始使用 Claude Code 时建立信任。</p>
+  <p><strong>典型交互：</strong></p>
+<pre><code>Claude 想要编辑 src/index.ts
+  [y] 允许  [n] 拒绝  [a] 允许同类操作  [d] 拒绝同类操作</code></pre>
+</div>
+</details>
+
+<details>
+<summary><code class="ic">acceptEdits</code> — 信任编辑 <span class="badge">常用</span></summary>
+<div class="details-body">
+  <p>在 default 的基础上，额外自动批准文件编辑操作（Edit、Write、NotebookEdit 等）。</p>
+  <p><strong>适合：</strong>你信任 Claude 修改代码的能力，但仍然希望在它执行 shell 命令前确认。这是很多开发者的甜蜜点。</p>
+  <p><strong>不自动批准的：</strong>Bash 命令执行、文件删除等可能有不可逆副作用的操作。</p>
+</div>
+</details>
+
+<details>
+<summary><code class="ic">plan</code> — 研究-规划-执行模式 <span class="badge">协作流</span></summary>
+<div class="details-body">
+  <p>这不仅仅是一个权限模式——它改变了 Claude 的工作方式。详见下方 <a href="#plan-mode">Plan Mode 的工作方式</a>。</p>
+  <p><strong>自动批准的：</strong></p>
+  <ul>
+    <li>文件读取</li>
+    <li>探索性命令（grep、find、ls 等不产生副作用的命令）</li>
+    <li>写计划文档</li>
+  </ul>
+  <p><strong>不自动批准的：</strong></p>
+  <ul>
+    <li>修改业务代码</li>
+    <li>执行有副作用的命令（npm install、git commit 等）</li>
+  </ul>
+</div>
+</details>
+
+<details>
+<summary><code class="ic">auto</code> — 全自动 + 安全网 <span class="badge">高效</span></summary>
+<div class="details-body">
+  <p>几乎所有操作都自动批准，但有一层 <strong>Bash classifier</strong> 安全检查：</p>
+  <ul>
+    <li>系统内置一个轻量级分类器，实时判断每个 Bash 命令的风险等级</li>
+    <li>低风险命令（编译、测试、格式化）直接放行</li>
+    <li>高风险命令（<code class="ic">rm -rf</code>、<code class="ic">git push --force</code>、涉及网络的命令）会被拦截并要求确认</li>
+  </ul>
+  <p><strong>适合：</strong>日常开发中追求效率，同时保留最后一道安全防线。大多数资深用户使用此模式。</p>
+</div>
+</details>
+
+<details>
+<summary><code class="ic">dontAsk</code> — 精确白名单</summary>
+<div class="details-body">
+  <p>只允许预定义的动作集合，超出范围的操作不会询问用户而是直接拒绝或排队等待。</p>
+  <p><strong>适合：</strong>CI/CD 集成、自动化脚本中需要精确控制 Claude 能做什么的场景。配合 <code class="ic">--allowedTools</code> 参数使用效果最佳。</p>
+</div>
+</details>
+
+<details>
+<summary><code class="ic">bypassPermissions</code> — 全部放行 <span class="badge red" style="background:var(--accent-red-dim);color:var(--accent-red);">危险</span></summary>
+<div class="details-body">
+  <p>所有操作无条件通过，不经过任何安全检查。</p>
+  <div class="callout red">
+    <strong>警告：</strong>只应在以下场景使用：
+    <ul>
+      <li>隔离的 Docker 容器中</li>
+      <li>一次性的临时环境</li>
+      <li>不包含任何敏感数据的沙盒</li>
+    </ul>
+    在生产代码库中使用 bypassPermissions 是在拿你的代码安全赌博。Claude 不会故意做坏事，但模型幻觉可能导致意外的破坏性命令被执行。
+  </div>
+</div>
+</details>
+
+<!-- ==================== 权限决策流程 ==================== -->
+
+<h2 id="permission-flow">2. 权限决策流程</h2>
+
+<p>每次 Claude 想要调用一个工具时，权限系统会执行一个精密的决策流程。理解这个流程有助于你预测和控制 Claude 的行为。</p>
+
+<h3 id="决策流程总览">决策流程总览</h3>
+
+<div class="diagram">Claude 请求调用工具 (e.g. Bash: "npm test")
+  │
+  ├─① 创建 Permission Context
+  │    包含: 工具名、参数、当前权限模式、历史决策
+  │
+  ├─② 多源竞争决策 (createResolveOnce 模式)
+  │    ┌──────────────────────────────────────────┐
+  │    │  以下决策源并行启动，第一个返回结果的赢   │
+  │    │                                          │
+  │    │  Source 1: Hooks (PreToolUse)             │
+  │    │    → 用户配置的脚本可以抢先决策          │
+  │    │    → 可返回: allow / deny / 追加上下文    │
+  │    │                                          │
+  │    │  Source 2: Bash Classifier (仅 auto 模式) │
+  │    │    → 轻量级命令风险分类器                │
+  │    │    → 200ms grace period 等待其完成        │
+  │    │                                          │
+  │    │  Source 3: Allow/Deny 规则                │
+  │    │    → /permissions 中配置的静态规则        │
+  │    │    → 优先级高于 classifier               │
+  │    │                                          │
+  │    │  Source 4: Channel Permissions            │
+  │    │    → 权限模式定义的默认行为              │
+  │    │                                          │
+  │    │  Source 5: User Interaction               │
+  │    │    → 弹出确认框让用户手动决策            │
+  │    └──────────────────────────────────────────┘
+  │
+  ├─③ 第一个决策源返回结果
+  │    → allow: 执行工具
+  │    → deny: 拒绝并告知 Claude
+  │    → escalate: 转交用户确认
+  │    → context: 追加上下文后重新评估
+  │
+  └─④ 决策持久化
+       如果用户选择了 "allow all similar"
+       → 同类操作后续自动批准，不再询问</div>
+
+<h3 id="关键机制详解">关键机制详解</h3>
+
+<details>
+<summary><strong>createResolveOnce 模式</strong> — 第一个决策源赢 <span class="badge">核心</span></summary>
+<div class="details-body">
+  <p>权限系统不是按顺序检查每个决策源的。它使用 <code class="ic">createResolveOnce</code> 模式：所有决策源被同时激活，谁先返回有效结果谁赢。</p>
+  <p><strong>为什么这样设计？</strong></p>
+  <ul>
+    <li><strong>性能：</strong>不需要等所有源都返回才做决定</li>
+    <li><strong>用户体验：</strong>如果 Hooks 或规则能快速决策，用户就不需要看到确认框</li>
+    <li><strong>灵活性：</strong>不同源可以互相「抢答」</li>
+  </ul>
+  <p><strong>实际优先顺序：</strong></p>
+  <ol>
+    <li>Hooks 通常最先返回（本地脚本执行快）</li>
+    <li>Allow/Deny 静态规则（简单的模式匹配）</li>
+    <li>Bash classifier（需要约 200ms）</li>
+    <li>用户交互（等待人类操作，最慢）</li>
+  </ol>
+</div>
+</details>
+
+<details>
+<summary><strong>200ms grace period</strong> — 等待 classifier 完成 <span class="badge">细节</span></summary>
+<div class="details-body">
+  <p>在 <code class="ic">auto</code> 模式下，当 Bash classifier 正在分析命令风险时，系统会等待最多 200ms。这个短暂的延迟是为了让 classifier 有机会拦截危险命令，而不是直接放行。</p>
+  <p><strong>如果 200ms 内 classifier 没有返回：</strong>系统会回退到权限模式的默认行为（auto 模式下通常是放行）。</p>
+  <p><strong>如果 Hooks 在 200ms 内先返回了：</strong>classifier 的结果会被忽略，因为 createResolveOnce 已经被 resolve 了。</p>
+</div>
+</details>
+
+<details>
+<summary><strong>决策持久化</strong> — allow 后同类操作自动批准 <span class="badge">UX</span></summary>
+<div class="details-body">
+  <p>当用户在确认框中选择了 <code class="ic">[a] allow all similar</code> 时，系统会记住这个决策，后续同类操作自动批准。</p>
+  <ul>
+    <li><strong>持久化范围：</strong>当前会话内有效。新会话需要重新确认（除非配置了 Allow 规则）</li>
+    <li><strong>「同类」的定义：</strong>工具名相同 + 关键参数匹配模式相同（如同一类 Bash 命令）</li>
+    <li><strong>撤销方式：</strong><code class="ic">/permissions</code> 面板可以查看和管理所有已保存的决策</li>
+  </ul>
+</div>
+</details>
+
+<!-- ==================== Plan Mode ==================== -->
+
+<h2 id="plan-mode">3. Plan Mode 的工作方式</h2>
+
+<p>Plan Mode 不仅仅是一个权限开关——它从根本上改变了 Claude 的工作流程，从「直接执行」变成「研究 → 规划 → 审批 → 执行」的四阶段协作模型。</p>
+
+<div class="flow">
+  <div class="flow-node" style="border-color:var(--accent-blue);">研究</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node" style="border-color:var(--accent-gold);">规划</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node" style="border-color:var(--accent-green);">审批</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node" style="border-color:var(--accent-purple);">执行</div>
+</div>
+
+<h3 id="四个阶段">四个阶段</h3>
+
+<div class="card">
+  <div class="card-title">阶段 1：研究（自动）</div>
+  <p>Claude 自由地读取文件、搜索代码、运行只读命令来理解问题。这些操作在 plan 模式下被自动批准，无需用户介入。</p>
+  <ul>
+    <li>读取相关文件</li>
+    <li>Grep/Glob 搜索代码模式</li>
+    <li>运行探索性命令（<code class="ic">ls</code>、<code class="ic">cat</code>、<code class="ic">git log</code> 等）</li>
+    <li>分析架构和依赖关系</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="card-title">阶段 2：规划（自动）</div>
+  <p>基于研究结果，Claude 输出一份详细的执行计划，描述将要做什么修改、为什么这样做、可能的风险点。</p>
+  <ul>
+    <li>列出需要修改的文件</li>
+    <li>描述每个修改的目的和预期效果</li>
+    <li>标注可能的副作用或需要注意的地方</li>
+    <li>计划可以写成文档（如果配置了的话）</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="card-title">阶段 3：审批（用户）</div>
+  <p>用户审阅计划后决定是否批准执行。</p>
+  <ul>
+    <li>可以批准整个计划</li>
+    <li>可以修改计划后再执行</li>
+    <li>可以拒绝并要求重新规划</li>
+    <li>可以只批准部分步骤</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="card-title">阶段 4：执行（需确认）</div>
+  <p>获得批准后，Claude 按计划执行修改。每个写操作仍然可能需要单独确认（取决于具体配置）。</p>
+</div>
+
+<div class="callout blue">
+  <strong>何时使用 Plan Mode：</strong>
+  <ul>
+    <li>大型重构任务——先看全貌再动手</li>
+    <li>不熟悉的代码库——让 Claude 先研究再提方案</li>
+    <li>需要团队审阅的变更——用计划文档替代口头描述</li>
+    <li>关键系统——任何修改都需要人类确认</li>
+  </ul>
+</div>
+
+<!-- ==================== Allow/Deny 规则 ==================== -->
+
+<h2 id="allow-deny">4. Allow/Deny 规则</h2>
+
+<p>Allow/Deny 规则是用户手动配置的静态权限规则。它们的优先级高于 classifier，是你精确控制 Claude 行为的主要工具。</p>
+
+<h3 id="管理方式">管理方式</h3>
+<p>使用 <code class="ic">/permissions</code> 命令打开交互式权限管理面板，可以查看、添加、编辑和删除规则。</p>
+
+<h3 id="规则类型">规则类型</h3>
+
+<table class="tbl">
+  <tr><th>类型</th><th>效果</th><th>示例</th></tr>
+  <tr>
+    <td><code class="ic">Allow</code></td>
+    <td>匹配的操作自动批准，不询问用户</td>
+    <td>Allow Bash(npm test) — 允许运行 npm test</td>
+  </tr>
+  <tr>
+    <td><code class="ic">Deny</code></td>
+    <td>匹配的操作自动拒绝，不询问用户</td>
+    <td>Deny Bash(rm -rf *) — 永远禁止 rm -rf</td>
+  </tr>
+</table>
+
+<h3 id="规则匹配机制">规则匹配机制</h3>
+
+<div class="card">
+  <div class="card-title">工具名 + 参数模式匹配</div>
+  <p>规则的格式是 <code class="ic">工具名(参数模式)</code>。参数模式支持通配符匹配：</p>
+  <ul>
+    <li><code class="ic">Bash(npm *)</code> — 匹配所有以 npm 开头的命令</li>
+    <li><code class="ic">Edit(src/**)</code> — 匹配对 src 目录下所有文件的编辑</li>
+    <li><code class="ic">Bash(git push *)</code> — 匹配所有 git push 命令</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="card-title">优先级</div>
+  <p>Allow/Deny 规则的优先级<strong>高于</strong> Bash classifier。这意味着：</p>
+  <ul>
+    <li>如果你 Allow 了一个 classifier 认为危险的命令，它会被放行</li>
+    <li>如果你 Deny 了一个 classifier 认为安全的命令，它会被拒绝</li>
+    <li>规则让你拥有最终控制权，不受自动分类器的影响</li>
+  </ul>
+</div>
+
+<details>
+<summary>实用规则配置示例 <span class="badge">推荐</span></summary>
+<div class="details-body">
+<pre><code># 允许常见的开发命令
+Allow Bash(npm test)
+Allow Bash(npm run lint)
+Allow Bash(npm run build)
+Allow Bash(npx prisma generate)
+Allow Bash(git status)
+Allow Bash(git diff *)
+Allow Bash(git log *)
+
+# 禁止危险命令
+Deny Bash(rm -rf *)
+Deny Bash(git push --force *)
+Deny Bash(git reset --hard *)
+Deny Bash(curl * | sh)
+Deny Bash(wget * | sh)
+
+# 允许编辑特定目录
+Allow Edit(src/**)
+Allow Edit(tests/**)
+
+# 禁止编辑配置文件
+Deny Edit(.env*)
+Deny Edit(*.pem)
+Deny Edit(*credentials*)</code></pre>
+</div>
+</details>
+
+<!-- ==================== Hooks 系统 ==================== -->
+
+<h2 id="hooks">5. Hooks 系统</h2>
+
+<p>Hooks 是 Claude Code 权限系统中最强大也最灵活的扩展点。它允许你在工具调用的前后插入自定义脚本，实现自动化的权限决策、上下文注入和行为审计。</p>
+
+<h3 id="两种-hook-类型">两种 Hook 类型</h3>
+
+<table class="tbl">
+  <tr><th>类型</th><th>触发时机</th><th>能做什么</th></tr>
+  <tr>
+    <td><code class="ic">PreToolUse</code></td>
+    <td>工具执行<strong>之前</strong></td>
+    <td>
+      <ul>
+        <li>放行操作（跳过用户确认）</li>
+        <li>拒绝操作（阻止执行）</li>
+        <li>升级为用户确认（即使当前模式本来会自动放行）</li>
+        <li>追加上下文（在工具输入中添加额外信息）</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td><code class="ic">PostToolUse</code></td>
+    <td>工具执行<strong>之后</strong></td>
+    <td>
+      <ul>
+        <li>审计日志记录</li>
+        <li>触发后续操作（如自动格式化、自动测试）</li>
+        <li>修改工具输出</li>
+        <li>发送通知</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+<h3 id="hook-的返回值">Hook 的返回值</h3>
+
+<div class="card">
+  <div class="card-title">PreToolUse Hook 可返回的决策</div>
+  <table class="tbl">
+    <tr><th>返回值</th><th>效果</th></tr>
+    <tr>
+      <td><code class="ic">allow</code></td>
+      <td>直接放行，跳过所有后续权限检查</td>
+    </tr>
+    <tr>
+      <td><code class="ic">deny</code></td>
+      <td>直接拒绝，工具不会被执行</td>
+    </tr>
+    <tr>
+      <td><code class="ic">escalate</code></td>
+      <td>强制转交用户确认，即使当前权限模式本来会自动放行</td>
+    </tr>
+    <tr>
+      <td><code class="ic">context</code></td>
+      <td>不做权限决策，但向工具调用追加额外的上下文信息</td>
+    </tr>
+    <tr>
+      <td>（无返回 / 空）</td>
+      <td>跳过此 Hook，继续正常的权限决策流程</td>
+    </tr>
+  </table>
+</div>
+
+<h3 id="配置方式">配置方式</h3>
+
+<p>Hooks 在 <code class="ic">settings.json</code> 中配置。可以通过 <code class="ic">/config</code> 命令打开设置面板来编辑。</p>
+
+<details>
+<summary>settings.json 中的 Hooks 配置示例 <span class="badge">配置</span></summary>
+<div class="details-body">
+<pre><code>{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "python3 ~/.claude/hooks/check_bash_safety.py"
+      },
+      {
+        "matcher": "Edit",
+        "command": "node ~/.claude/hooks/validate_edit.js"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "command": "npx prettier --write $FILE_PATH"
+      },
+      {
+        "matcher": "Bash",
+        "command": "python3 ~/.claude/hooks/audit_log.py"
+      }
+    ]
+  }
+}</code></pre>
+  <p><strong>matcher 字段：</strong>指定此 Hook 监听的工具名称。可以是具体工具名（如 <code class="ic">Bash</code>、<code class="ic">Edit</code>），也可以用通配符匹配多个工具。</p>
+  <p><strong>command 字段：</strong>要执行的脚本或命令。脚本通过标准输入（stdin）接收工具调用的详细信息（JSON 格式），通过标准输出（stdout）返回决策。</p>
+</div>
+</details>
+
+<details>
+<summary>PreToolUse Hook 脚本示例 <span class="badge">代码</span></summary>
+<div class="details-body">
+<pre><code><span class="cmt">#!/usr/bin/env python3</span>
+<span class="cmt"># ~/.claude/hooks/check_bash_safety.py</span>
+<span class="cmt"># 检查 Bash 命令是否安全</span>
+
+<span class="kw">import</span> sys, json
+
+<span class="cmt"># 从 stdin 读取工具调用信息</span>
+input_data = json.loads(sys.stdin.read())
+command = input_data.get(<span class="str">"tool_input"</span>, {}).get(<span class="str">"command"</span>, <span class="str">""</span>)
+
+<span class="cmt"># 定义危险模式</span>
+dangerous_patterns = [
+    <span class="str">"rm -rf /"</span>,
+    <span class="str">"curl.*| sh"</span>,
+    <span class="str">"wget.*| bash"</span>,
+    <span class="str">"> /dev/sda"</span>,
+    <span class="str">"mkfs"</span>,
+    <span class="str">"dd if="</span>,
+]
+
+<span class="kw">for</span> pattern <span class="kw">in</span> dangerous_patterns:
+    <span class="kw">if</span> pattern <span class="kw">in</span> command:
+        <span class="cmt"># 返回 deny 决策</span>
+        json.dump({
+            <span class="str">"decision"</span>: <span class="str">"deny"</span>,
+            <span class="str">"reason"</span>: <span class="str">f"命令包含危险模式: {pattern}"</span>
+        }, sys.stdout)
+        sys.exit(<span class="num">0</span>)
+
+<span class="cmt"># 没有匹配到危险模式，不做决策（继续正常流程）</span>
+json.dump({}, sys.stdout)
+sys.exit(<span class="num">0</span>)</code></pre>
+</div>
+</details>
+
+<h3 id="hooks-的执行时序">Hooks 的执行时序</h3>
+
+<div class="diagram">工具调用请求
+  │
+  ├── PreToolUse Hooks（可能有多个，按配置顺序执行）
+  │     ├── Hook 1 返回 allow → 直接放行，跳过后续 Hooks
+  │     ├── Hook 1 返回 deny → 直接拒绝，跳过后续 Hooks
+  │     ├── Hook 1 返回 context → 追加上下文，继续执行后续 Hooks
+  │     └── Hook 1 无返回 → 继续执行后续 Hooks
+  │
+  ├── 正常权限决策流程（如果 Hooks 没有做出最终决策）
+  │     ├── Allow/Deny 规则
+  │     ├── Bash Classifier
+  │     └── 用户交互
+  │
+  ├── 工具执行
+  │
+  └── PostToolUse Hooks（按配置顺序执行）
+        ├── 审计日志
+        ├── 后处理（格式化等）
+        └── 通知</div>
+
+<div class="callout">
+  <strong>Hooks 的实际应用场景：</strong>
+  <ul>
+    <li><strong>安全审计：</strong>记录所有 Bash 命令执行到审计日志</li>
+    <li><strong>自动格式化：</strong>每次编辑文件后自动运行 Prettier/ESLint</li>
+    <li><strong>自定义安全策略：</strong>根据公司安全规范拦截特定操作</li>
+    <li><strong>上下文增强：</strong>在特定工具调用时注入额外的项目信息</li>
+    <li><strong>团队通知：</strong>当 Claude 执行关键操作时发送 Slack 通知</li>
+  </ul>
+</div>
+
+<!-- ==================== 权限系统全景 ==================== -->
+
+<h2 id="overview">权限体系全景总结</h2>
+
+<div class="card">
+  <div class="card-title">决策优先级（从高到低）</div>
+  <ol>
+    <li><strong>Hooks (PreToolUse)</strong> — 用户自定义脚本的决策优先级最高。返回 allow/deny 后其他源全部跳过。</li>
+    <li><strong>Allow/Deny 静态规则</strong> — 通过 /permissions 配置的规则，比 classifier 优先。</li>
+    <li><strong>Bash Classifier</strong> — 仅在 auto 模式下生效的轻量级风险分类器。</li>
+    <li><strong>权限模式默认行为</strong> — 6 种模式各自定义的默认行为。</li>
+    <li><strong>用户交互</strong> — 弹出确认框等待人类决策，兜底方案。</li>
+  </ol>
+</div>
+
+<div class="callout green">
+  <strong>最终建议：</strong>
+  <ul>
+    <li><strong>新手期：</strong>用 <code class="ic">default</code> 模式，逐步建立对 Claude 行为的认知</li>
+    <li><strong>日常开发：</strong>用 <code class="ic">auto</code> 模式 + Allow/Deny 规则做精细控制</li>
+    <li><strong>重要变更：</strong>切换到 <code class="ic">plan</code> 模式，让 Claude 先出方案再执行</li>
+    <li><strong>自动化流水线：</strong>用 <code class="ic">dontAsk</code> + Hooks 做精确的白名单控制</li>
+    <li><strong>安全敏感项目：</strong>配置 PreToolUse Hooks 实现自定义安全策略</li>
+  </ul>
+</div>
+
+<style>.chapter-nav{display:flex;gap:16px;margin:48px 0 0;padding-top:24px;border-top:1px solid var(--border-subtle)}.chapter-nav a{flex:1;display:block;padding:16px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);text-decoration:none!important;transition:all .2s ease}.chapter-nav a:hover{border-color:var(--accent-gold);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}.chapter-nav .cn-dir{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px}.chapter-nav .cn-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:2px}.chapter-nav .cn-desc{font-size:12px;color:var(--text-muted);line-height:1.4}.chapter-nav .cn-prev{text-align:left}.chapter-nav .cn-next{text-align:right}@media(max-width:600px){.chapter-nav{flex-direction:column}}</style>
+<div class="chapter-nav">
+  <a href="../pages/context.html" class="cn-prev"><div class="cn-dir">← 上一章</div><div class="cn-title">上下文体系</div><div class="cn-desc">CLAUDE.md · Rules · Memory · Skills · MCP</div></a>
+  <a href="../pages/kairos-overview.html" class="cn-next"><div class="cn-dir">下一章 →</div><div class="cn-title">KAIROS 概述与激活</div><div class="cn-desc">定位 · Feature Flags · 激活链路</div></a>
+</div>
+
+</div></div><script src="../js/tooltips.js"></script>
+</body>
+</html>

@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAIROS 主动模式 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u4e92\u52a8\u4f53\u9a8c",items:[
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"LIVE"},
+    {h:"pages/buddy-interactive.html",t:"Buddy \u5b9e\u9a8c\u5ba4",b:"PLAY"},
+    {h:"pages/challenges.html",t:"\u77e5\u8bc6\u95ef\u5173",b:"20\u5173"}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'\x3c/div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+      sh+='\x3c/div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){sb.classList.remove('hidden');document.body.classList.remove('sidebar-off');if(btn)btn.classList.remove('collapsed')}
+  else{sb.classList.add('hidden');document.body.classList.add('sidebar-off');if(btn)btn.classList.add('collapsed')}
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){items.push({level:2,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="H3"){items.push({level:3,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();if(txt.length<3)return;
+      var did=el.id;if(!did){did="d-"+items.length;el.id=did}
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2\x3c/div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='\x3c/div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+        th+='<div class="toc-children">';inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+      }
+    });
+    if(inGroup)th+='\x3c/div>';
+    rt.innerHTML=th;document.body.appendChild(rt);
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        tocAll.forEach(function(l){l.classList.remove("active")});
+        var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+        if(m){m.classList.add("active");var p=m.closest(".toc-children");if(p)p.classList.add("expanded");
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});}
+      }});
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(){var nx=a.nextElementSibling;if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded")});
+    });
+    var fg=rt.querySelector(".toc-children");if(fg)fg.classList.add("expanded");
+    // FAB for mobile
+    var fab=document.createElement("button");fab.className="toc-fab";fab.textContent="\u2630";fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){drt=rt.cloneNode(true);drt.id="drawerToc";drt.className="right-toc as-drawer";
+        var cl=document.createElement("div");cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed";cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);document.body.appendChild(drt);
+        var dov=document.createElement("div");dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");drt.classList.toggle("open");dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);updBtn(saved);
+window.toggleTheme=function(){var c=document.documentElement.getAttribute("data-theme")||"dark";var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("theme",n);updBtn(n)};
+function updBtn(t){var b=document.querySelector(".theme-toggle");if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark"}
+
+// ---- Search ----
+window.openSearch=function(){if(document.getElementById("searchModal"))return;var m=document.createElement("div");m.id="searchModal";m.className="search-modal";m.innerHTML='<div class="search-backdrop" onclick="closeSearch()">\x3c/div><div class="search-box"><input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus /><div id="searchResults" class="search-results">\x3c/div><div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c\x3c/div>\x3c/div>';document.body.appendChild(m);setTimeout(function(){m.classList.add("open")},10);var inp=document.getElementById("searchInput");inp.addEventListener("input",doSearch);inp.addEventListener("keydown",function(e){if(e.key==="Escape")closeSearch();if(e.key==="Enter"){var f=document.querySelector(".search-result-item");if(f)f.click()}if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();var its=document.querySelectorAll(".search-result-item");var cur=document.querySelector(".search-result-item.focused");var idx=-1;its.forEach(function(it,i){if(it===cur)idx=i});if(e.key==="ArrowDown")idx=Math.min(idx+1,its.length-1);else idx=Math.max(idx-1,0);its.forEach(function(it){it.classList.remove("focused")});if(its[idx]){its[idx].classList.add("focused");its[idx].scrollIntoView({block:"nearest"})}}})};
+window.closeSearch=function(){var m=document.getElementById("searchModal");if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}};
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}});
+var PAGES=[
+  {u:B+"index.html",t:"首页 "},
+  {u:B+"pages/arch-core.html",t:"启动与核心循环 启动流程 · QueryEngine · 上下文装配"},
+  {u:B+"pages/arch-runtime.html",t:"运行时机制 工具编排 · 状态管理 · 压缩 · 持久化"},
+  {u:B+"pages/tools-detail.html",t:"内置工具详解 42 个工具的用户价值与机制"},
+  {u:B+"pages/commands-detail.html",t:"斜杠命令手册 67 个命令完整功能说明"},
+  {u:B+"pages/context.html",t:"上下文体系 CLAUDE.md · Rules · Memory · Skills · MCP"},
+  {u:B+"pages/permissions.html",t:"权限系统 6 种模式 · 决策流程 · Hooks"},
+  {u:B+"pages/kairos-overview.html",t:"KAIROS 概述与激活 定位 · Feature Flags · 激活链路"},
+  {u:B+"pages/kairos-proactive.html",t:"KAIROS 主动模式 心跳 · Brief · 专属工具 · Dream"},
+  {u:B+"pages/kairos-coordinator.html",t:"Coordinator 编排 Worker 系统 · 远程架构 · vs OpenClaw"},
+  {u:B+"pages/buddy.html",t:"Buddy 电子宠物 18 物种 · 5 稀有度 · 确定性生成"},
+  {u:B+"pages/voice-vim.html",t:"语音 · Vim · 快捷键 三种输入模式"},
+  {u:B+"pages/remote-bridge.html",t:"远程 · IDE Bridge SSH 隧道 · JWT 双向通信"},
+  {u:B+"pages/plugin-skills.html",t:"插件 · 技能 Plugin 生命周期 · Skills 加载"},
+  {u:B+"pages/memory-system.html",t:"记忆系统 5 种记忆机制全景"},
+  {u:B+"pages/analytics-policy.html",t:"分析 · 合规 Feature Flags · 遥测 · MDM"},
+  {u:B+"pages/ink-ui.html",t:"终端 UI Ink 框架 · 390+ 组件"},
+  {u:B+"pages/internals.html",t:"内部机制 迁移 · 入口点 · Schemas · 费用"},
+  {u:B+"pages/learn-s01.html",t:"S01: Agent Loop 一个循环 + Bash = 一个 Agent"},
+  {u:B+"pages/learn-s02.html",t:"S02: Tool Use dispatch map 让模型长出手臂"},
+  {u:B+"pages/learn-s03.html",t:"S03: TodoWrite 让 Agent 学会做计划"},
+  {u:B+"pages/learn-s04.html",t:"S04: Subagent 用上下文隔离保持主线清晰"},
+  {u:B+"pages/learn-s05.html",t:"S05: Skill Loading 按需加载的知识库"},
+  {u:B+"pages/learn-s06.html",t:"S06: Context Compact 三层压缩保持 Agent 不失忆"},
+  {u:B+"pages/learn-s07.html",t:"S07: Task System 持久化任务图"},
+  {u:B+"pages/learn-s08.html",t:"S08: Background Tasks 后台执行不阻塞"},
+  {u:B+"pages/learn-s09.html",t:"S09: Agent Teams 持久化团队 + JSONL 邮箱"},
+  {u:B+"pages/learn-s10.html",t:"S10: Team Protocols request-response 协议"},
+  {u:B+"pages/learn-s11.html",t:"S11: Autonomous Agents 自组织与自动认领"},
+  {u:B+"pages/learn-s12.html",t:"S12: Worktree Isolation Git Worktree 目录隔离"},
+  {u:B+"pages/glossary.html",t:"术语表 37 个核心术语完整解释"},
+  {u:B+"pages/simulator.html",t:"Agent 循环模拟器 交互"},
+  {u:B+"pages/buddy-interactive.html",t:"Buddy 实验室 精灵 生成器"},
+  {u:B+"pages/hidden-behaviors.html",t:"隐藏行为 反蒸馏 卧底 挛败感检测 anti-distillation undercover frustration"},
+  {u:B+"pages/modular-prompts.html",t:"模块化系统提示 prompt 110 A/B"},
+  {u:B+"pages/agentic-patterns.html",t:"Agent 设计模式 ULTRAPLAN feature flags 安全绕过"}
+];
+function doSearch(){var q=document.getElementById("searchInput").value.trim().toLowerCase();var res=document.getElementById("searchResults");if(!q){res.innerHTML="";return}var hits=[];var pw2=document.querySelector(".page-wrap");if(pw2){pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){var txt=el.textContent||"";if(txt.toLowerCase().indexOf(q)>-1){var id=el.id||(el.closest&&el.closest("[id]")?el.closest("[id]").id:"");hits.push({text:txt.substring(0,120),id:id,local:true})}})}PAGES.forEach(function(pg){if(pg.t.toLowerCase().indexOf(q)>-1)hits.push({text:pg.t,url:pg.u,local:false})});var seen=new Set();var html="";var count=0;hits.forEach(function(h){if(count>=12)return;var key=h.text.substring(0,50);if(seen.has(key))return;seen.add(key);count++;if(h.local&&h.id){html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><span class="sr-type">\u672c\u9875\x3c/span>'+esc2(h.text)+'\x3c/div>'}else if(!h.local){html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'"><span class="sr-type">\u9875\u9762\x3c/span>'+esc2(h.text)+'\x3c/div>'}});if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c\x3c/div>';res.innerHTML=html}
+function esc2(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag official">OFFICIAL SOURCE ANALYSIS</div>
+<h1>KAIROS 主动模式</h1>
+<p class="subtitle">心跳机制、Brief Tool、三把专属工具、Auto Dream 记忆整合、Channel 推送通知。</p>
+
+<h2 id="heartbeat">4. 心跳机制——Tick 与 Proactive Mode</h2>
+
+<p>
+  如果说 KAIROS 的激活流程是「唤醒」，那么心跳机制就是「保持清醒」。这是 KAIROS 最核心、最具革命性的设计：让 AI 拥有持续的「意识流」——即使没有用户输入，AI 也能定期检查环境、发现任务、主动行动。这正是让它像「龙虾」一样不知疲倦的原因。
+</p>
+
+<h3 id="heartbeat-tick">TICK_TAG：心跳信号</h3>
+
+<p>
+  在 Claude Code 的 XML 标签常量体系中（定义于 <code class="ic">src/constants/xml.ts</code>），<code class="ic">TICK_TAG</code> 是一个特殊的标签名：
+</p>
+
+<pre><code>export const TICK_TAG = 'tick'</code></pre>
+
+<p>
+  系统会周期性地向 Claude 的对话上下文中注入 <code class="ic">&lt;tick&gt;</code> 元素作为心跳信号。当 Claude 收到一个 <code class="ic">&lt;tick&gt;</code> 提示时，它会执行以下检查序列：
+</p>
+
+<div class="flow">
+  <span class="flow-node">收到 &lt;tick&gt;</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">检查待处理任务</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">检查文件变化</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">检查 Worker 状态</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">决定行动或睡眠</span>
+</div>
+
+<p>
+  每次 <code class="ic">&lt;tick&gt;</code> 的到来都意味着一次 API 调用——Claude 需要读取上下文、评估当前状态、决定是否需要采取行动。这是一个有成本的操作，因此心跳间隔的设计需要在「响应性」和「成本」之间取得平衡。
+</p>
+
+<h3 id="heartbeat-sleep">SleepTool：智能等待</h3>
+
+<p>
+  SleepTool 是 KAIROS 心跳机制的关键组件。它的设计哲学可以从其 prompt 中完整看到：
+</p>
+
+<div class="card">
+  <div class="card-title">SleepTool 完整 Prompt（源码引用）</div>
+<pre><code>Wait for a specified duration. The user can interrupt the sleep at any time.
+
+Use this when the user tells you to sleep or rest, when you have nothing
+to do, or when you're waiting for something.
+
+You may receive &lt;tick&gt; prompts — these are periodic check-ins.
+Look for useful work to do before sleeping.
+
+You can call this concurrently with other tools — it won't interfere
+with them.
+
+Prefer this over `Bash(sleep ...)` — it doesn't hold a shell process.
+
+Each wake-up costs an API call, but the prompt cache expires after
+5 minutes of inactivity — balance accordingly.</code></pre>
+</div>
+
+<p>
+  SleepTool 的核心设计决策：
+</p>
+
+<table class="tbl">
+  <tr><th>设计点</th><th>说明</th></tr>
+  <tr>
+    <td><strong>非阻塞</strong></td>
+    <td>与 <code class="ic">Bash(sleep 300)</code> 不同，SleepTool 不占用 shell 进程。它是一个应用层的定时器，不会锁住终端的命令执行能力</td>
+  </tr>
+  <tr>
+    <td><strong>可并发</strong></td>
+    <td>SleepTool 可以与其他工具并行调用——在等待的同时，Claude 可以同时运行其他操作</td>
+  </tr>
+  <tr>
+    <td><strong>可打断</strong></td>
+    <td>用户随时可以打断睡眠状态，Claude 会立即响应</td>
+  </tr>
+  <tr>
+    <td><strong>成本感知</strong></td>
+    <td>每次唤醒都消耗一次 API 调用。Prompt cache 在 5 分钟不活动后过期——这意味着 5 分钟的间隔是一个自然的成本平衡点</td>
+  </tr>
+</table>
+
+<h3 id="heartbeat-proactive">Proactive Mode 系统提示</h3>
+
+<p>
+  当 Proactive Mode 激活时（通过 <code class="ic">maybeActivateProactive()</code>），Claude 的系统提示中会注入额外的指令，赋予它主动行动的能力。这些指令的核心内容包括：
+</p>
+
+<div class="card">
+  <div class="card-title">Proactive Mode 注入的系统提示要点</div>
+  <ul>
+    <li><strong>主动检查：</strong>在收到 <code class="ic">&lt;tick&gt;</code> 时，主动检查环境中是否有需要处理的事项</li>
+    <li><strong>任务完成汇报：</strong>后台任务完成时，通过 Brief 工具（SendUserMessage）主动通知用户</li>
+    <li><strong>阻塞发现：</strong>遇到阻塞问题时，主动向用户报告并请求帮助</li>
+    <li><strong>状态更新：</strong>长时间任务中，在关键节点主动发送进度更新</li>
+    <li><strong>行动前思考：</strong>在采取主动行动前，先评估行动的必要性和影响</li>
+  </ul>
+</div>
+
+<p>
+  Proactive Mode 的激活通过 <code class="ic">maybeActivateProactive()</code> 函数实现：
+</p>
+
+<pre><code>function maybeActivateProactive(options: unknown): void {
+  if ((feature('PROACTIVE') || feature('KAIROS')) &amp;&amp;
+      ((options as { proactive?: boolean }).proactive ||
+       isEnvTruthy(process.env.CLAUDE_CODE_PROACTIVE))) {
+    const proactiveModule = require('./proactive/index.js');
+    if (!proactiveModule.isProactiveActive()) {
+      proactiveModule.activateProactive('command');
+    }
+  }
+}</code></pre>
+
+<p>
+  注意这里的 OR 逻辑：<code class="ic">feature('PROACTIVE') || feature('KAIROS')</code>。这意味着 Proactive 功能可以独立于 KAIROS 存在——它有自己的 feature flag，但 KAIROS 激活时也会包含它。
+</p>
+
+<h3 id="heartbeat-lifecycle">心跳生命周期</h3>
+
+<div class="diagram">
+<pre>
+  KAIROS Daemon 启动
+        |
+        v
+  [等待用户指令 或 &lt;tick&gt; 信号]
+        |
+        v
+  +-------------------+
+  | 收到 &lt;tick&gt;       |&lt;---------+
+  +-------------------+          |
+        |                        |
+        v                        |
+  +-------------------+          |
+  | 检查待办事项      |          |
+  | - 未完成的任务?   |          |
+  | - Worker 完成?    |          |
+  | - PR 事件?        |          |
+  | - Channel 消息?   |          |
+  +-------------------+          |
+     |            |              |
+  有工作        无工作           |
+     |            |              |
+     v            v              |
+  [执行工具]  [Sleep(duration)]  |
+  [Brief 汇报]    |             |
+     |            |              |
+     v            v              |
+  [等待下次 tick]-+---[唤醒]----+
+</pre>
+</div>
+
+<div class="callout red">
+  <strong>成本警告：</strong>Proactive Mode 下的每次心跳都消耗一次 API 调用（包含完整的上下文读取）。对于持续运行的 Daemon 进程，这意味着即使没有用户输入，token 消耗也在持续累积。5 分钟一次的 tick 意味着每小时 12 次 API 调用，每天 288 次。Prompt cache 的 5 分钟有效期是一个关键的成本优化点——在 cache 有效期内唤醒可以复用缓存，避免完整重新计算上下文。
+</div>
+
+<!-- ==================== 5. Brief Tool ==================== -->
+
+<h2 id="brief">5. Brief Tool (SendUserMessage)——KAIROS 的嘴巴</h2>
+
+<p>
+  在 KAIROS 模式下，Claude 不能直接输出文本给用户看——所有面向用户的输出都必须通过 <code class="ic">SendUserMessage</code>（内部名称 Brief Tool）。这个设计决策看似奇怪，实际上是 KAIROS 架构的必然结果：当 Claude 运行在 Daemon 模式中时，它的「裸文本」输出只存在于远程进程的 detail view 中——用户通常不会打开它。<strong>SendUserMessage 是唯一保证用户能看到的输出渠道。</strong>
+</p>
+
+<h3 id="brief-activation">8 种激活方式</h3>
+
+<p>
+  Brief Tool 有着复杂的激活路径，以下是源码中可追溯到的全部激活方式：
+</p>
+
+<table class="tbl">
+  <tr><th>#</th><th>激活方式</th><th>源码位置</th><th>说明</th></tr>
+  <tr><td>1</td><td><code class="ic">--assistant</code> 参数</td><td>main.tsx:1080</td><td>KAIROS daemon 模式强制 <code class="ic">options.brief = true</code></td></tr>
+  <tr><td>2</td><td><code class="ic">--brief</code> CLI 参数</td><td>main.tsx:4622-4644</td><td>用户手动启用 Brief 模式</td></tr>
+  <tr><td>3</td><td><code class="ic">CLAUDE_CODE_BRIEF=1</code> 环境变量</td><td>main.tsx:4627</td><td>环境变量覆盖，同时授予 entitlement</td></tr>
+  <tr><td>4</td><td><code class="ic">defaultView: 'chat'</code> settings</td><td>main.tsx:2184</td><td>设置文件中的默认视图为 chat 模式</td></tr>
+  <tr><td>5</td><td><code class="ic">tengu_kairos</code> GrowthBook gate</td><td>main.tsx:1034</td><td>Gate 通过时自动启用</td></tr>
+  <tr><td>6</td><td><code class="ic">tengu_kairos_brief</code> GrowthBook gate</td><td>BriefTool.ts</td><td>Brief 独立 gate</td></tr>
+  <tr><td>7</td><td><code class="ic">/brief</code> 斜杠命令</td><td>commands.ts:67</td><td>运行时切换 Brief 模式</td></tr>
+  <tr><td>8</td><td>Agent SDK passthrough</td><td>main.tsx:1055</td><td>Daemon 子进程继承父进程的 entitlement</td></tr>
+</table>
+
+<h3 id="brief-gating">双层门控机制</h3>
+
+<p>
+  Brief Tool 使用两层门控来决定它的可用状态：
+</p>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-block gold">Layer 1: isBriefEntitled()</div>
+    <div class="layer-block gold">用户是否有权使用 Brief？（Feature Flag + GrowthBook + 环境变量）</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block blue">Layer 2: isBriefEnabled()</div>
+    <div class="layer-block blue">用户是否已 opt-in？（getUserMsgOptIn() = true）</div>
+  </div>
+</div>
+
+<pre><code>// Layer 1: 权限检查 — 用户被允许使用 Brief 吗？
+function isBriefEntitled(): boolean {
+  // 构建时: feature('KAIROS') || feature('KAIROS_BRIEF')
+  // 运行时: GrowthBook gate || 环境变量 || assistant forced
+  // ...
+}
+
+// Layer 2: opt-in 检查 — 用户实际启用了 Brief 吗？
+function isBriefEnabled(): boolean {
+  return isBriefEntitled() &amp;&amp; getUserMsgOptIn();
+}</code></pre>
+
+<p>
+  <code class="ic">isBriefEntitled()</code> 决定 Brief 是否应该出现在工具列表中、<code class="ic">--brief</code> 参数是否有效。<code class="ic">isBriefEnabled()</code> 决定 Brief 是否真正激活——即 Claude 是否被要求通过 SendUserMessage 输出。
+</p>
+
+<h3 id="brief-schema">Schema 详解</h3>
+
+<div class="card">
+  <div class="card-title">SendUserMessage 输入 Schema</div>
+<pre><code>z.strictObject({
+  message: z.string()
+    .describe('The message for the user. Supports markdown formatting.'),
+
+  attachments: z.array(z.string()).optional()
+    .describe('Optional file paths (absolute or relative to cwd) to attach.
+               Use for photos, screenshots, diffs, logs, or any file
+               the user should see alongside your message.'),
+
+  status: z.enum(['normal', 'proactive'])
+    .describe("Use 'proactive' when you're surfacing something the user
+               hasn't asked for and needs to see now — task completion
+               while they're away, a blocker you hit, an unsolicited
+               status update. Use 'normal' when replying to something
+               the user just said."),
+})</code></pre>
+</div>
+
+<div class="card">
+  <div class="card-title">SendUserMessage 输出 Schema</div>
+<pre><code>z.object({
+  message: z.string()
+    .describe('The message'),
+
+  attachments: z.array(z.object({
+    path: z.string(),
+    size: z.number(),
+    isImage: z.boolean(),
+    file_uuid: z.string().optional(),
+  })).optional()
+    .describe('Resolved attachment metadata'),
+
+  sentAt: z.string().optional()
+    .describe('ISO timestamp captured at tool execution on the
+               emitting process.'),
+})</code></pre>
+</div>
+
+<p>
+  <code class="ic">status</code> 字段是 KAIROS 的核心语义标记之一。当 Claude 主动发起通信时（比如后台任务完成了、遇到阻塞了），它必须标记 <code class="ic">status: 'proactive'</code>。这个标记被下游的路由系统使用——proactive 消息可能触发 Push Notification，而 normal 消息不会。
+</p>
+
+<h3 id="brief-prompt">系统提示中的 Brief 要求</h3>
+
+<p>
+  当 Brief 启用时，系统提示中会注入一段关于如何使用 SendUserMessage 的详细指令。以下是完整的源码引用：
+</p>
+
+<div class="card">
+  <div class="card-title">BRIEF_PROACTIVE_SECTION（源码完整引用）</div>
+<pre><code>## Talking to the user
+
+SendUserMessage is where your replies go. Text outside it is visible
+if the user expands the detail view, but most won't — assume unread.
+Anything you want them to actually see goes through SendUserMessage.
+The failure mode: the real answer lives in plain text while
+SendUserMessage just says "done!" — they see "done!" and miss
+everything.
+
+So: every time the user says something, the reply they actually read
+comes through SendUserMessage. Even for "hi". Even for "thanks".
+
+If you can answer right away, send the answer. If you need to go
+look — run a command, read files, check something — ack first in
+one line ("On it — checking the test output"), then work, then send
+the result. Without the ack they're staring at a spinner.
+
+For longer work: ack → work → result. Between those, send a
+checkpoint when something useful happened — a decision you made,
+a surprise you hit, a phase boundary. Skip the filler
+("running tests...") — a checkpoint earns its place by carrying
+information.
+
+Keep messages tight — the decision, the file:line, the PR number.
+Second person always ("your config"), never third.</code></pre>
+</div>
+
+<div class="callout blue">
+  <strong>设计哲学：</strong>注意最后一句——「Second person always ("your config"), never third」。这不只是风格指导，而是 KAIROS 的人格定义：AI 是在和你说话，不是在写文档。这种直接的二人称沟通方式让 KAIROS 的输出感觉像是一个同事在 Slack 上给你发消息，而不是一个机器人在生成报告。
+</div>
+
+<h3 id="brief-analytics">Analytics 事件</h3>
+
+<table class="tbl">
+  <tr><th>事件名</th><th>触发时机</th><th>携带数据</th></tr>
+  <tr><td><code class="ic">tengu_brief_send</code></td><td>每次 SendUserMessage 工具被调用时</td><td>消息长度、附件数量、status 值</td></tr>
+  <tr><td><code class="ic">tengu_brief_mode_enabled</code></td><td>Brief 模式被启用或尝试启用时</td><td>enabled (boolean), gated (boolean), source (如 'cli', 'env', 'setting')</td></tr>
+</table>
+
+<!-- ==================== 6. KAIROS 专属工具 ==================== -->
+
+<h2 id="tools">6. KAIROS 专属工具——三把额外的钥匙</h2>
+
+<p>
+  除了 SendUserMessage，KAIROS 还解锁了三个专属工具。它们共同构成了 KAIROS 的外部接口——让 AI 能够向用户发送文件、推送通知、订阅 GitHub 事件。
+</p>
+
+<h3 id="tools-file">SendUserFileTool — 文件投递</h3>
+
+<p>
+  SendUserFileTool 允许 Claude 直接向用户发送文件——而不仅仅是文件路径的引用。在 Daemon 模式下，用户可能不在同一台机器上（比如通过 Web UI 连接到远程 Daemon），所以需要一种将文件内容「投递」到客户端的机制。
+</p>
+
+<table class="tbl">
+  <tr><th>属性</th><th>说明</th></tr>
+  <tr><td>用途</td><td>将生成的文件（如图表、diff 文件、日志等）直接推送给用户</td></tr>
+  <tr><td>激活条件</td><td><code class="ic">feature('KAIROS')</code> 且 kairosEnabled = true</td></tr>
+  <tr><td>与 Brief 附件的区别</td><td>Brief 的 attachments 是引用（路径），SendUserFile 是传输（内容）</td></tr>
+</table>
+
+<h3 id="tools-push">PushNotificationTool — 推送通知</h3>
+
+<p>
+  当用户不在终端前时（关掉了笔记本盖子、切换到其他应用），Claude 需要一种方式「拍拍用户的肩膀」。PushNotificationTool 就是这个功能——它通过操作系统级别的推送通知（或其他推送渠道）将消息发送到用户的设备。
+</p>
+
+<table class="tbl">
+  <tr><th>属性</th><th>说明</th></tr>
+  <tr><td>用途</td><td>在用户离开时发送重要通知（任务完成、遇到阻塞、需要审批等）</td></tr>
+  <tr><td>激活条件</td><td><code class="ic">feature('KAIROS_PUSH_NOTIFICATION')</code></td></tr>
+  <tr><td>与 Brief 的关系</td><td>Brief 的 <code class="ic">status: 'proactive'</code> 消息可能触发 Push Notification</td></tr>
+  <tr><td>限流</td><td>有内置限流机制，避免通知轰炸</td></tr>
+</table>
+
+<h3 id="tools-pr">SubscribePRTool — GitHub PR 订阅</h3>
+
+<p>
+  SubscribePRTool 让 Claude 能够「监听」GitHub Pull Request 上的事件——review comments、CI 结果、状态变化等。订阅后，这些事件会作为 user-role 消息注入到 Claude 的对话上下文中，触发它的响应。
+</p>
+
+<table class="tbl">
+  <tr><th>属性</th><th>说明</th></tr>
+  <tr><td>用途</td><td>监听 PR 上的 review comment、CI 结果等，自动响应</td></tr>
+  <tr><td>激活条件</td><td><code class="ic">feature('KAIROS_GITHUB_WEBHOOKS')</code></td></tr>
+  <tr><td>事件类型</td><td>Review comments, CI status changes, label changes 等</td></tr>
+  <tr><td>限制</td><td>Merge conflict 状态变化不会通过 webhook 到达——GitHub 不对 <code class="ic">mergeable_state</code> 变化发 webhook，需要用 <code class="ic">gh pr view N --json mergeable</code> 轮询</td></tr>
+  <tr><td>配合工具</td><td><code class="ic">subscribe_pr_activity</code> / <code class="ic">unsubscribe_pr_activity</code></td></tr>
+</table>
+
+<div class="callout green">
+  <strong>使用场景：</strong>想象一下：你让 KAIROS 提交一个 PR，然后去吃午饭。KAIROS 订阅了这个 PR 的事件。你的同事留了一条 review comment 说「这里有个 typo」。KAIROS 收到事件，自动修复 typo，push 新 commit，然后给你发一条 Brief 消息：「已修复 @alice 指出的 typo（src/auth.ts:42），新 commit: abc1234」。你回来时一切已经搞定了。
+</div>
+
+<!-- ==================== 7. Coordinator Mode ==================== -->
+<h2 id="coordinator">7. Coordinator Mode——Worker 编排系统</h2>
+
+<p>
+  Coordinator Mode 是 KAIROS 体系中最复杂的子系统之一。它将 Claude 从一个「独立执行者」转变为一个「项目经理」——不直接写代码，而是编排多个 Worker 并行完成任务，然后综合它们的成果。这是对 AI 编程助手「能力上限」的一次根本性提升。
+</p>
+
+<h3 id="coordinator-vs-teams">与 Agent Teams/Swarms 的区别</h3>
+
+<table class="tbl">
+  <tr><th>概念</th><th>Coordinator Mode</th><th>Agent Teams (Teammate)</th><th>Swarms</th></tr>
+  <tr>
+    <td>拓扑</td>
+    <td>一个 Coordinator + 多个 Worker（星型）</td>
+    <td>多个对等 Teammate（网状）</td>
+    <td>自组织群体</td>
+  </tr>
+  <tr>
+    <td>控制流</td>
+    <td>Coordinator 分发任务、综合结果</td>
+    <td>Teammate 间相互通信</td>
+    <td>无中心控制</td>
+  </tr>
+  <tr>
+    <td>适用场景</td>
+    <td>复杂工程任务的分治</td>
+    <td>持续协作的团队</td>
+    <td>大规模探索</td>
+  </tr>
+  <tr>
+    <td>激活方式</td>
+    <td>环境变量 + Feature Flag</td>
+    <td>KAIROS Team 初始化</td>
+    <td>—</td>
+  </tr>
+</table>
+
+<h3 id="coordinator-activation">激活方式</h3>
+
+<pre><code>// coordinatorMode.ts
+export function isCoordinatorMode(): boolean {
+  if (feature('COORDINATOR_MODE')) {
+    return isEnvTruthy(process.env.CLAUDE_CODE_COORDINATOR_MODE)
+  }
+  return false
+}</code></pre>
+
+<p>
+  Coordinator Mode 的激活需要两个条件同时满足：构建时 <code class="ic">feature('COORDINATOR_MODE')</code> 为 true，运行时 <code class="ic">CLAUDE_CODE_COORDINATOR_MODE=1</code> 环境变量被设置。
+</p>
+
+<h3 id="coordinator-session">Session Mode 持久化</h3>
+
+<p>
+  Coordinator Mode 的状态会被持久化到 session storage 中。当用户通过 <code class="ic">--resume</code> 恢复一个在 Coordinator Mode 下创建的会话时，系统会自动检测并重新激活 Coordinator Mode：
+</p>
+
+<pre><code>export function matchSessionMode(
+  sessionMode: 'coordinator' | 'normal' | undefined,
+): string | undefined {
+  if (!sessionMode) return undefined;
+
+  const currentIsCoordinator = isCoordinatorMode();
+  const sessionIsCoordinator = sessionMode === 'coordinator';
+
+  if (currentIsCoordinator === sessionIsCoordinator) return undefined;
+
+  // 翻转环境变量，让 isCoordinatorMode() 返回正确的值
+  if (sessionIsCoordinator) {
+    process.env.CLAUDE_CODE_COORDINATOR_MODE = '1';
+  } else {
+    delete process.env.CLAUDE_CODE_COORDINATOR_MODE;
+  }
+
+  return sessionIsCoordinator
+    ? 'Entered coordinator mode to match resumed session.'
+    : 'Exited coordinator mode to match resumed session.';
+}</code></pre>
+
+<h3 id="coordinator-prompt">超长系统提示的核心内容</h3>
+
+<p>
+  Coordinator Mode 有一个极其详细的系统提示（从 <code class="ic">getCoordinatorSystemPrompt()</code> 生成），它定义了 Coordinator 的完整行为规范。以下是它的核心章节拆解。
+</p>
+
+<details>
+<summary><strong>Section 1: Your Role — 角色定义</strong></summary>
+<div class="details-body">
+<pre><code>You are a coordinator. Your job is to:
+- Help the user achieve their goal
+- Direct workers to research, implement and verify code changes
+- Synthesize results and communicate with the user
+- Answer questions directly when possible — don't delegate work
+  that you can handle without tools</code></pre>
+<p>
+  关键约束：「Answer questions directly when possible」——Coordinator 不应该把所有事情都扔给 Worker。简单的问题应该直接回答。只有需要工具操作（读文件、执行命令、修改代码）的任务才应该委派给 Worker。
+</p>
+</div>
+</details>
+
+<details>
+<summary><strong>Section 2: Your Tools — 工具清单</strong></summary>
+<div class="details-body">
+<p>Coordinator 自身只有少数几个工具：</p>
+<ul>
+  <li><code class="ic">Agent</code> — 创建新 Worker</li>
+  <li><code class="ic">SendMessage</code> — 向现有 Worker 发送后续指令</li>
+  <li><code class="ic">TaskStop</code> — 停止一个正在运行的 Worker</li>
+  <li><code class="ic">subscribe_pr_activity / unsubscribe_pr_activity</code> — GitHub PR 订阅（如果可用）</li>
+</ul>
+<p>
+  注意 Coordinator <strong>没有</strong> Bash、FileRead、FileWrite 等直接操作工具。它不能直接修改代码——必须通过 Worker 来完成。这是一个刻意的设计选择：强制 Coordinator 聚焦于编排而非执行。
+</p>
+</div>
+</details>
+
+<details>
+<summary><strong>Section 3: 四阶段工作流</strong></summary>
+<div class="details-body">
+
+<table class="tbl">
+  <tr><th>阶段</th><th>执行者</th><th>目的</th></tr>
+  <tr><td><strong>Research</strong></td><td>Workers（并行）</td><td>调查代码库、查找文件、理解问题</td></tr>
+  <tr><td><strong>Synthesis</strong></td><td><strong>Coordinator 自己</strong></td><td>阅读发现、理解问题、编写实现规格</td></tr>
+  <tr><td><strong>Implementation</strong></td><td>Workers</td><td>根据规格做具体修改、提交</td></tr>
+  <tr><td><strong>Verification</strong></td><td>Workers</td><td>测试变更是否生效</td></tr>
+</table>
+
+<div class="callout red">
+  <strong>核心原则：「永远不要把理解委派给 Worker」</strong><br>
+  Synthesis 阶段<strong>必须</strong>由 Coordinator 自己完成——不能让一个 Worker 去「理解」另一个 Worker 的发现。这是整个 Coordinator Mode 最重要的原则。
+</div>
+
+</div>
+</details>
+
+<details>
+<summary><strong>Section 4: BAD vs GOOD 的指令对比（完整源码引用）</strong></summary>
+<div class="details-body">
+<pre><code>// Anti-pattern — lazy delegation (bad whether continuing or spawning)
+Agent({ prompt: "Based on your findings, fix the auth bug", ... })
+Agent({ prompt: "The worker found an issue in the auth module.
+                  Please fix it.", ... })
+
+// Good — synthesized spec (works with either continue or spawn)
+Agent({ prompt: "Fix the null pointer in src/auth/validate.ts:42.
+  The user field on Session (src/auth/types.ts:15) is undefined
+  when sessions expire but the token remains cached. Add a null
+  check before user.id access — if null, return 401 with
+  'Session expired'. Commit and report the hash.", ... })</code></pre>
+<p>
+  BAD 模式的关键词是「Based on your findings」和「The worker found an issue」——这些是懒惰委派。Coordinator 没有真正理解 Research Worker 的发现，只是把它原样转给了 Implementation Worker。
+</p>
+<p>
+  GOOD 模式包含具体的文件路径、行号、类型签名、修复方案——这证明 Coordinator 真正阅读并理解了 Research 的结果。
+</p>
+</div>
+</details>
+
+<h3 id="coordinator-worker-tools">Worker 的工具访问权限</h3>
+
+<p>
+  Worker 的工具集由 <code class="ic">ASYNC_AGENT_ALLOWED_TOOLS</code> 常量定义：
+</p>
+
+<div class="card">
+  <div class="card-title">ASYNC_AGENT_ALLOWED_TOOLS 完整列表</div>
+<pre><code>// src/constants/tools.ts
+export const ASYNC_AGENT_ALLOWED_TOOLS = new Set([
+  FILE_READ_TOOL_NAME,      // Read — 读取文件
+  WEB_SEARCH_TOOL_NAME,     // WebSearch — 搜索网页
+  TODO_WRITE_TOOL_NAME,     // TodoWrite — 写入待办
+  GREP_TOOL_NAME,           // Grep — 内容搜索
+  WEB_FETCH_TOOL_NAME,      // WebFetch — 抓取网页
+  GLOB_TOOL_NAME,           // Glob — 文件模式匹配
+  ...SHELL_TOOL_NAMES,      // Bash, PowerShell — Shell 执行
+  FILE_EDIT_TOOL_NAME,      // Edit — 编辑文件
+  FILE_WRITE_TOOL_NAME,     // Write — 写入文件
+  NOTEBOOK_EDIT_TOOL_NAME,  // NotebookEdit — Jupyter 编辑
+  SKILL_TOOL_NAME,          // Skill — 调用技能
+  SYNTHETIC_OUTPUT_TOOL_NAME, // SyntheticOutput — 合成输出
+  TOOL_SEARCH_TOOL_NAME,    // ToolSearch — 搜索工具
+  ENTER_WORKTREE_TOOL_NAME, // EnterWorktree — 进入 Git worktree
+  EXIT_WORKTREE_TOOL_NAME,  // ExitWorktree — 退出 Git worktree
+])</code></pre>
+</div>
+
+<h3 id="coordinator-worker-denied">Worker 被禁止的工具及原因</h3>
+
+<table class="tbl">
+  <tr><th>被禁止的工具</th><th>原因</th></tr>
+  <tr><td><code class="ic">Agent</code></td><td>Worker 不能再创建子 Worker——防止无限递归</td></tr>
+  <tr><td><code class="ic">SendMessage</code></td><td>Worker 不能向其他 Worker 发消息——跨 Worker 通信由 Coordinator 统一管理</td></tr>
+  <tr><td><code class="ic">TeamCreate / TeamDelete</code></td><td>Worker 不能创建或删除 Team——这是 Coordinator 的特权</td></tr>
+  <tr><td><code class="ic">SendUserMessage (Brief)</code></td><td>Worker 不能直接向用户发消息——只有 Coordinator 可以</td></tr>
+  <tr><td><code class="ic">TaskStop</code></td><td>Worker 不能停止其他 Worker</td></tr>
+</table>
+
+<p>
+  但 in-process teammates（非通过 Coordinator Mode 创建的，而是通过 KAIROS Team 初始化的）有额外的工具权限：
+</p>
+
+<pre><code>export const IN_PROCESS_TEAMMATE_ALLOWED_TOOLS = new Set([
+  TASK_CREATE_TOOL_NAME,    // TaskCreate
+  TASK_GET_TOOL_NAME,       // TaskGet
+  TASK_LIST_TOOL_NAME,      // TaskList
+  TASK_UPDATE_TOOL_NAME,    // TaskUpdate
+  SEND_MESSAGE_TOOL_NAME,   // SendMessage
+  // + Cron 工具（如果 AGENT_TRIGGERS flag 启用）
+  CRON_CREATE_TOOL_NAME,
+  CRON_DELETE_TOOL_NAME,
+  CRON_LIST_TOOL_NAME,
+])</code></pre>
+
+<h3 id="coordinator-scratchpad">Scratchpad 跨 Worker 知识共享</h3>
+
+<p>
+  Worker 之间不能直接通信，但它们需要某种方式共享信息。Scratchpad 是解决方案——一个所有 Worker 都可以读写的共享目录，<strong>不需要权限提示</strong>。它的启用受 <code class="ic">tengu_scratch</code> GrowthBook gate 控制。
+</p>
+
+<pre><code>if (scratchpadDir &amp;&amp; isScratchpadGateEnabled()) {
+  content += `\n\nScratchpad directory: ${scratchpadDir}
+Workers can read and write here without permission prompts.
+Use this for durable cross-worker knowledge — structure files
+however fits the work.`
+}</code></pre>
+
+<h3 id="coordinator-notification">task-notification XML 格式</h3>
+
+<p>
+  Worker 完成时的通知以 XML 格式注入到 Coordinator 的对话上下文中：
+</p>
+
+<div class="card">
+  <div class="card-title">task-notification 完整结构</div>
+<pre><code>&lt;task-notification&gt;
+  &lt;task-id&gt;{agentId}&lt;/task-id&gt;
+  &lt;status&gt;completed|failed|killed&lt;/status&gt;
+  &lt;summary&gt;{human-readable status summary}&lt;/summary&gt;
+  &lt;result&gt;{agent's final text response}&lt;/result&gt;        &lt;!-- 可选 --&gt;
+  &lt;usage&gt;                                                 &lt;!-- 可选 --&gt;
+    &lt;total_tokens&gt;N&lt;/total_tokens&gt;
+    &lt;tool_uses&gt;N&lt;/tool_uses&gt;
+    &lt;duration_ms&gt;N&lt;/duration_ms&gt;
+  &lt;/usage&gt;
+&lt;/task-notification&gt;</code></pre>
+</div>
+
+<p>
+  关键设计：task-notification 作为 <strong>user-role 消息</strong>注入——它看起来像用户消息，但不是。Coordinator 通过 <code class="ic">&lt;task-notification&gt;</code> 开头标签来区分它和真正的用户输入。
+</p>
+
+<h3 id="coordinator-permissions">Worker 权限决策链</h3>
+
+<div class="flow">
+  <span class="flow-node">Worker 请求执行工具</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Hooks 检查</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Classifier 检查</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Interactive 审批（如需）</span>
+</div>
+
+<p>
+  Worker 的权限模型遵循与普通模式相同的三层决策链：先检查 Hooks（如果有自定义规则），再检查 Classifier（自动分类器），最后在需要时请求用户交互式审批。在 KAIROS Daemon 模式下，交互式审批通过 Bridge 远程桥接到用户的 viewer 客户端。
+</p>
+
+<!-- ==================== 8. Auto Dream ==================== -->
+
+<h2 id="dream">8. Auto Dream——让 AI 做梦</h2>
+
+<p>
+  Auto Dream 是 KAIROS 体系中最诗意的设计。它的灵感来自人类的睡眠记忆整合——在白天积累了大量零散信息后，大脑在夜间通过 REM 睡眠将这些信息整合、归类、存储为长期记忆。Auto Dream 让 Claude 做同样的事。
+</p>
+
+<h3 id="dream-rationale">为什么需要「做梦」</h3>
+
+<p>
+  KAIROS 模式下的 Claude 会在长时间运行中积累大量会话上下文。每个会话的 transcript 都包含了工具调用、文件读写、用户对话等海量信息。随着时间推移，这些信息呈指数级膨胀——但 Claude 的上下文窗口是有限的。
+</p>
+
+<p>
+  传统的解决方案是 Context Compact（上下文压缩）——在上下文接近窗口上限时，通过摘要压缩来释放空间。但 Context Compact 是<strong>被动的、即时的</strong>——它在压力下丢弃信息。
+</p>
+
+<p>
+  Auto Dream 是<strong>主动的、定期的</strong>——它在没有紧迫压力时，从容地审视所有近期会话，将有价值的信息提炼并存入持久记忆。
+</p>
+
+<table class="tbl">
+  <tr><th>维度</th><th>Context Compact</th><th>Auto Dream</th></tr>
+  <tr><td>触发条件</td><td>上下文窗口接近上限</td><td>距上次整合超过阈值时间且有足够新会话</td></tr>
+  <tr><td>执行方式</td><td>在当前会话中内联执行</td><td>Fork 子进程独立执行</td></tr>
+  <tr><td>数据来源</td><td>当前会话上下文</td><td>所有近期会话 transcripts + 现有记忆文件</td></tr>
+  <tr><td>输出目标</td><td>压缩后的上下文（替换原上下文）</td><td>memdir 中的持久记忆文件</td></tr>
+  <tr><td>信息保留率</td><td>较低（压力下丢弃）</td><td>较高（从容提炼）</td></tr>
+</table>
+
+<h3 id="dream-gate">触发门控（成本优先排序）</h3>
+
+<p>
+  Auto Dream 的触发经过三层门控，按成本从低到高排序（cheapest first）：
+</p>
+
+<pre><code>// Gate order (cheapest first):
+//   1. Time: hours since lastConsolidatedAt >= minHours (one stat read)
+//   2. Sessions: transcript count with mtime > lastConsolidatedAt >= minSessions
+//   3. Lock: no other process mid-consolidation</code></pre>
+
+<div class="flow">
+  <span class="flow-node">Gate 1: 时间检查</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Gate 2: 会话计数</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">Gate 3: 锁检查</span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node">启动整合</span>
+</div>
+
+<table class="tbl">
+  <tr><th>门控</th><th>默认值</th><th>GrowthBook Key</th><th>说明</th></tr>
+  <tr><td>minHours</td><td>24 小时</td><td><code class="ic">tengu_onyx_plover.minHours</code></td><td>距上次整合的最小间隔</td></tr>
+  <tr><td>minSessions</td><td>5 个</td><td><code class="ic">tengu_onyx_plover.minSessions</code></td><td>需要积累的最少新会话数</td></tr>
+  <tr><td>Lock</td><td>—</td><td>—</td><td>文件锁，防止多进程并发整合</td></tr>
+</table>
+
+<p>
+  还有一个扫描节流机制：当时间门控通过但会话门控未通过时，锁的 mtime 不会更新，导致时间门控在每个 turn 都通过。为了避免频繁扫描，有一个 10 分钟的 <code class="ic">SESSION_SCAN_INTERVAL_MS</code> 节流。
+</p>
+
+<h3 id="dream-process">整合流程（四阶段）</h3>
+
+<p>
+  Auto Dream 的整合工作由一个 forked subagent 执行，遵循以下四阶段流程（定义于 <code class="ic">consolidationPrompt.ts</code>）：
+</p>
+
+<details>
+<summary><strong>Phase 1: Orient — 定向</strong></summary>
+<div class="details-body">
+<pre><code>- ls 记忆目录，查看现有内容
+- 读取入口文件（entrypoint），理解当前索引
+- 浏览现有主题文件，避免创建重复
+- 如果存在 logs/ 或 sessions/ 子目录（assistant 模式布局），
+  审查近期条目</code></pre>
+</div>
+</details>
+
+<details>
+<summary><strong>Phase 2: Gather recent signal — 收集近期信号</strong></summary>
+<div class="details-body">
+<pre><code>按优先级排序的信息来源：
+1. Daily logs（logs/YYYY/MM/YYYY-MM-DD.md）— 追加流
+2. 已漂移的现有记忆 — 与代码库现状矛盾的旧事实
+3. Transcript 搜索 — 用 grep 窄范围搜索 JSONL 文件
+
+关键原则：不要穷举读取 transcripts。只搜索你已经怀疑重要的东西。</code></pre>
+</div>
+</details>
+
+<details>
+<summary><strong>Phase 3: Consolidate — 整合</strong></summary>
+<div class="details-body">
+<pre><code>对每个值得记住的事项，写入或更新记忆目录顶层的记忆文件。
+聚焦于：
+- 将新信号合并到现有主题文件，而非创建近似重复
+- 将相对日期（"昨天"、"上周"）转换为绝对日期
+- 删除被推翻的事实 — 如果今天的调查推翻了旧记忆，
+  在源头修正它</code></pre>
+</div>
+</details>
+
+<details>
+<summary><strong>Phase 4: Prune and index — 修剪与索引</strong></summary>
+<div class="details-body">
+<pre><code>更新入口文件，保持在行数上限和 ~25KB 之内。
+它是索引，不是数据库 — 每个条目一行 ~150 字符：
+- [Title](file.md) — 一行钩子
+
+操作：
+- 移除指向过时/错误/被取代的记忆的指针
+- 缩减冗长条目：如果索引行超过 ~200 字符，
+  它承载了属于主题文件的内容 — 缩短行，移动细节
+- 添加指向新重要记忆的指针
+- 解决矛盾 — 如果两个文件不一致，修正错误的那个</code></pre>
+</div>
+</details>
+
+<h3 id="dream-config">启用配置</h3>
+
+<pre><code>// config.ts — 轻量配置模块
+export function isAutoDreamEnabled(): boolean {
+  // 用户设置优先级最高
+  const setting = getInitialSettings().autoDreamEnabled;
+  if (setting !== undefined) return setting;
+
+  // 否则回退到 GrowthBook gate
+  const gb = getFeatureValue_CACHED_MAY_BE_STALE(
+    'tengu_onyx_plover', null
+  );
+  return gb?.enabled === true;
+}</code></pre>
+
+<h3 id="dream-rules">整合的具体规则</h3>
+
+<p>社区将 Auto Dream 称为「让 AI 做梦」，这个比喻非常精确——就像人类在 REM 睡眠中整理白天的记忆一样。以下是源码中记录的具体整合规则：</p>
+
+<table class="tbl">
+  <tr><th>规则</th><th>行为</th><th>原因</th></tr>
+  <tr><td>200 行上限</td><td>MEMORY.md 索引始终保持在 200 行以内</td><td>每次会话启动都会加载索引，太长浪费上下文空间</td></tr>
+  <tr><td>25KB 总量限制</td><td>索引文件不超过 ~25KB</td><td>与 200 行上限互补的硬性约束</td></tr>
+  <tr><td>矛盾删除</td><td>新事实推翻旧记忆时，直接在源头修正旧记忆</td><td>比如项目从 Express 切换到 Fastify，旧的 "API uses Express" 会被删除</td></tr>
+  <tr><td>日期绝对化</td><td>相对日期转换为绝对日期</td><td>"昨天决定用 Redis" → "2026-03-15 决定用 Redis"，防止时间流逝后语义失真</td></tr>
+  <tr><td>重叠合并</td><td>语义相似的记忆条目合并为一个</td><td>避免索引中出现多个说同一件事的条目</td></tr>
+  <tr><td>过时清理</td><td>删除关于已删除文件、已废弃功能的调试笔记</td><td>这些记忆已经没有价值</td></tr>
+  <tr><td>索引是索引</td><td>每个条目一行 ~150 字符：<code class="ic">- [Title](file.md) — 一行钩子</code></td><td>详细内容在 topic 文件中，索引只做导航</td></tr>
+</table>
+
+<h3 id="dream-lock">并发锁机制</h3>
+
+<p>Auto Dream 使用文件锁（<code class="ic">consolidationLock.ts</code>）防止多个 Claude Code 实例同时做梦：</p>
+
+<ul>
+  <li>锁文件位置：<code class="ic">~/.claude/projects/&lt;path&gt;/memory/.consolidate-lock</code></li>
+  <li>锁文件的 mtime <strong>就是</strong> lastConsolidatedAt 时间戳（复用文件元数据，不需要额外状态）</li>
+  <li>基于 PID 检测锁是否有效，超过 1 小时视为过期</li>
+  <li>支持失败回滚：如果整合过程失败，会回退 mtime，允许下次重试</li>
+</ul>
+
+<h3 id="dream-safety">安全约束</h3>
+
+<div class="callout green">
+  <strong>Auto Dream 的安全边界：</strong>
+  <ul style="margin-top:8px">
+    <li>对项目代码<strong>只读</strong>——不能修改源码、配置、测试</li>
+    <li>只能写入 <code class="ic">~/.claude/projects/&lt;path&gt;/memory/</code> 目录</li>
+    <li>锁文件防止并发运行</li>
+    <li>后台执行，不阻塞当前活跃会话</li>
+    <li>最多 30 轮工具调用（防止 rabbit hole）</li>
+    <li>用户可以随时终止（Kill 并回滚锁的 mtime）</li>
+  </ul>
+</div>
+
+<h3 id="dream-manual">手动触发</h3>
+
+<p>除了自动触发外，用户可以用自然语言手动触发整合：</p>
+<ul>
+  <li><code class="ic">"dream"</code></li>
+  <li><code class="ic">"auto dream"</code></li>
+  <li><code class="ic">"consolidate my memory files"</code></li>
+</ul>
+<p>一次观察到的整合处理了 913 个会话，耗时约 8-9 分钟。</p>
+
+<h3 id="dream-ui">UI 表现</h3>
+
+<p>Auto Dream 在 UI 中表现为底部状态栏的一个小标签（通过 <code class="ic">DreamTask.ts</code> 注册），显示：</p>
+<ul>
+  <li>当前阶段：<code class="ic">starting → updating</code></li>
+  <li>正在审查的会话数量</li>
+  <li>已修改的记忆文件列表</li>
+  <li>最近的 assistant 回复摘要</li>
+</ul>
+
+<div class="callout blue">
+  <strong>与 Auto Memory Extraction 的关系：</strong>Auto Dream 和 Auto Memory Extraction 是两个互补的系统。Auto Memory 在每次会话结束时提取即时记忆（「刚才发生了什么」），而 Auto Dream 在多个会话之后进行深度整合（「这段时间以来我学到了什么」）。前者是日志，后者是教科书。两者共同构成了 Claude 的四层记忆架构：CLAUDE.md（用户手写）→ Auto Memory（即时提取）→ Session Memory（会话连续性）→ Auto Dream（定期整合）。
+</div>
+
+<!-- ==================== 9. Channel Notifications ==================== -->
+
+<h2 id="channels">9. Channel Notifications——MCP 推送</h2>
+
+<p>
+  Channel Notifications 是 KAIROS 的外部集成接口——它允许 MCP 服务器向 Claude 推送「频道消息」，就像 Slack channel 中的消息一样。这为 Claude 打开了一个全新的输入通道：不只是用户在终端里打字，还可以是外部系统的事件通知。
+</p>
+
+<h3 id="channels-capability">claude/channel capability</h3>
+
+<p>
+  Channel Notifications 通过 MCP 协议的 capability 机制实现。MCP 服务器在初始化时声明 <code class="ic">claude/channel</code> capability，然后通过 <code class="ic">notifications/claude/channel</code> 方法推送消息。
+</p>
+
+<pre><code>// 构建时门控
+feature('KAIROS') || feature('KAIROS_CHANNELS')
+
+// 运行时门控（GrowthBook）
+tengu_harbor gate</code></pre>
+
+<h3 id="channels-format">消息格式与注入</h3>
+
+<p>
+  MCP Channel 消息以 <code class="ic">&lt;channel-message&gt;</code> XML 标签包裹，作为 <strong>user-role 消息</strong>注入到 Claude 的对话上下文中：
+</p>
+
+<pre><code>&lt;channel-message&gt;
+  &lt;channel&gt;plugin:name@marketplace&lt;/channel&gt;
+  {消息内容}
+&lt;/channel-message&gt;</code></pre>
+
+<p>
+  Channel 的标识格式是 <code class="ic">plugin:name@marketplace</code>——这标识了消息来源于哪个 MCP 插件。Claude 可以根据 channel 标识决定如何处理消息（是否立即响应、是否需要用户确认等）。
+</p>
+
+<h3 id="channels-enterprise">企业配置</h3>
+
+<p>
+  Channel Notifications 的启用可以在企业级别进行配置。<code class="ic">channelsEnabled</code> 配置项允许组织管理员控制哪些 MCP 服务器可以推送 channel 消息、消息的审批流程等。
+</p>
+
+<h3 id="channels-permissions">权限模型</h3>
+
+<table class="tbl">
+  <tr><th>检查点</th><th>说明</th></tr>
+  <tr><td>构建时 flag</td><td><code class="ic">feature('KAIROS') || feature('KAIROS_CHANNELS')</code></td></tr>
+  <tr><td>运行时 gate</td><td><code class="ic">tengu_harbor</code> GrowthBook gate</td></tr>
+  <tr><td>企业策略</td><td><code class="ic">channelsEnabled</code> 配置</td></tr>
+  <tr><td>MCP 服务器声明</td><td>服务器必须声明 <code class="ic">claude/channel</code> capability</td></tr>
+</table>
+
+<!-- ==================== 10. 远程会话架构 ==================== -->
+<h2 id="remote-arch">10. 远程会话架构——Daemon 的底层</h2>
+
+<p>
+  KAIROS 的所有高级功能（主动心跳、后台工作、断线恢复）都建立在一个核心基础设施之上：<strong>远程会话架构</strong>。这是 Claude Code 从「本地终端应用」到「可远程连接的 Daemon 服务」的架构跃迁。
+</p>
+
+<h3 id="remote-bridge">Bridge 在 KAIROS 中的角色</h3>
+
+<p>
+  Bridge 是连接 Daemon 进程和 Viewer 客户端的通信层。在 KAIROS 模式下：
+</p>
+
+<div class="diagram">
+<pre>
+  +-------------------+         WebSocket        +-------------------+
+  |                   |&lt;-------------------------&gt;|                   |
+  |  Daemon 进程      |    Bridge 通信层          |  Viewer 客户端    |
+  |  (agentic loop)   |                          |  (REPL UI)        |
+  |                   |  - 消息流转发             |                   |
+  |  - API 调用       |  - 权限请求桥接           |  - 显示输出       |
+  |  - 工具执行       |  - 状态同步               |  - 接收用户输入   |
+  |  - 上下文管理     |  - 会话历史分页           |  - 权限审批       |
+  |                   |                          |                   |
+  +-------------------+                          +-------------------+
+         |                                              |
+         | JWT Token                               关闭/重连
+         | 刷新调度器                               不影响 Daemon
+         |
+  +-------------------+
+  |  Anthropic API    |
+  +-------------------+
+</pre>
+</div>
+
+<h3 id="remote-websocket">WebSocket 订阅机制</h3>
+
+<p>
+  Viewer 客户端通过 WebSocket 与 Daemon 建立持久连接。连接建立后，Viewer 订阅 Daemon 的消息流，实时接收以下事件：
+</p>
+
+<ul>
+  <li>Claude 的文本输出（通过 SendUserMessage）</li>
+  <li>工具调用的进度和结果</li>
+  <li>权限请求（需要用户审批）</li>
+  <li>Worker 的状态变化</li>
+  <li>系统通知</li>
+</ul>
+
+<h3 id="remote-history">Session History 分页 API</h3>
+
+<p>
+  当 Viewer 断线重连时，它需要追赶 Daemon 在断线期间产生的输出。Session History API 提供了分页查询机制，允许 Viewer 按时间范围获取历史消息。这确保了即使网络中断后重新连接，用户也能看到完整的执行历史。
+</p>
+
+<h3 id="remote-viewer">viewer-only 模式</h3>
+
+<p>
+  在 KAIROS 模式下，REPL 的角色发生了根本变化——它从「驱动者」变为「观察者 + 信使」：
+</p>
+
+<table class="tbl">
+  <tr><th>传统 REPL 模式</th><th>KAIROS Viewer 模式</th></tr>
+  <tr><td>REPL 直接驱动 agentic loop</td><td>Daemon 驱动 agentic loop，REPL 只显示结果</td></tr>
+  <tr><td>用户输入直接进入对话</td><td>用户输入通过 Bridge 转发给 Daemon</td></tr>
+  <tr><td>关闭终端 = 停止 Claude</td><td>关闭终端 ≠ 停止 Daemon，可重新连接</td></tr>
+  <tr><td>权限审批在本地终端</td><td>权限审批通过 Bridge 远程桥接</td></tr>
+</table>
+
+<h3 id="remote-permissions">权限请求的远程桥接</h3>
+
+<p>
+  当 Daemon 中的 Claude 需要执行一个需要用户审批的操作（如写入敏感文件、执行 destructive 命令）时，权限请求通过 Bridge 发送到 Viewer 客户端。Viewer 在终端中显示审批提示，用户做出决定后，结果通过 Bridge 返回给 Daemon。这个机制确保了即使在远程 Daemon 模式下，用户仍然保持对敏感操作的控制权。
+</p>
+
+<h3 id="remote-jwt">JWT Token 刷新调度器</h3>
+
+<p>
+  Daemon 进程是长时间运行的——可能运行数小时甚至数天。它使用的 JWT token 有有效期限制，需要定期刷新。Token 刷新调度器负责在 token 接近过期时自动获取新 token，确保 Daemon 的 API 调用不会因为 token 过期而中断。
+</p>
+
+<!-- ==================== 11. 完整数据流 ==================== -->
+<h2 id="dataflow">11. KAIROS 的完整数据流</h2>
+
+<p>
+  以下是从用户启动 KAIROS 到 AI 自主工作的完整数据流图。这是本文最重要的图示之一——它将前面所有章节的内容串联成一个完整的画面。
+</p>
+
+<div class="diagram">
+<pre>
+  用户启动: claude --assistant
+  |
+  +-- [1] CLI 解析
+  |     options.assistant = true
+  |
+  +-- [2] 构建时检查
+  |     feature('KAIROS') == true?
+  |     |-- false --> 普通 REPL 模式
+  |     |-- true  --> 条件 require assistantModule, kairosGate
+  |
+  +-- [3] 运行时门控
+  |     markAssistantForced() (--assistant 跳过 GB gate)
+  |     OR isKairosEnabled() (GB gate: tengu_kairos)
+  |     |-- false --> 普通 REPL 模式
+  |     |-- true  --> kairosEnabled = true
+  |
+  +-- [4] Trust Dialog
+  |     checkHasTrustDialogAccepted()
+  |     |-- false --> 打印警告, 禁用 KAIROS
+  |     |-- true  --> 继续
+  |
+  +-- [5] 初始化链
+  |     setKairosActive(true)
+  |     options.brief = true (强制 Brief)
+  |     initializeAssistantTeam() (预置 in-process team)
+  |
+  +-- [6] REPL 模式切换
+  |     fullRemoteControl = true
+  |     Bridge 启动 (WebSocket)
+  |     REPL --> Viewer/Messenger 客户端
+  |
+  +-- [7] Daemon Agentic Loop 启动
+        |
+        +-- [7a] Proactive Mode 激活
+        |     maybeActivateProactive()
+        |     TICK_TAG 心跳注入
+        |
+        +-- [7b] Brief Mode 激活
+        |     maybeActivateBrief()
+        |     setUserMsgOptIn(true)
+        |     系统提示注入 BRIEF_PROACTIVE_SECTION
+        |
+        +-- [7c] Channel 初始化 (如果启用)
+        |     MCP 服务器 channel capability 注册
+        |
+        +-- [7d] 主循环
+              |
+              +--[收到用户输入]--+--[处理]--+--[Brief 输出]
+              |                              |
+              +--[收到 &lt;tick&gt;]---+--[检查环境]--+--[有工作]--> 执行
+              |                              |--[无工作]--> Sleep
+              |
+              +--[收到 task-notification]---+--[综合]--+--[Brief 汇报]
+              |
+              +--[收到 channel-message]----+--[处理]--+--[Brief 或忽略]
+              |
+              +--[Auto Dream 门控通过]-----+--[Fork]--> Dream 子进程
+              |                                         |
+              |                                   [Phase 1-4]
+              |                                         |
+              |                                   [记忆文件更新]
+              |
+              +--[PR 事件 (如已订阅)]------+--[处理]--> 自动响应
+                                                    |
+                                              [Push Notification]
+                                              (如果 proactive &amp;&amp; 用户离线)
+</pre>
+</div>
+
+<div class="callout">
+  <strong>数据流要点：</strong>注意主循环中有四种输入来源（用户输入、tick 心跳、task-notification、channel-message），但只有一种面向用户的输出方式（SendUserMessage / Brief）。这是 KAIROS 的架构约束——所有用户可见输出都通过同一个管道，确保一致的消息格式和路由行为。
+</div>
+
+<!-- ==================== 12. KAIROS vs OpenClaw ==================== -->
+<h2 id="comparison">12. KAIROS vs OpenClaw 对比</h2>
+
+<p>
+  KAIROS 和 OpenClaw 是同一愿景的两种实现路径。前者是 Anthropic 官方的、深度集成的方案；后者是社区驱动的、基于逆向工程的开源方案。以下是全面的对比分析。
+</p>
+
+<h3 id="comparison-overview">总体对比</h3>
+
+<table class="tbl">
+  <tr><th>维度</th><th>KAIROS</th><th>OpenClaw</th></tr>
+  <tr>
+    <td><strong>定位</strong></td>
+    <td>Anthropic 官方原生实现。深度集成在 Claude Code 运行时中，与所有子系统（Bridge、Memory、Analytics、Permissions）紧密协作</td>
+    <td>社区逆向实现。作为 Claude Code 的外部包装层，通过注入 system prompt 和模拟用户输入来实现主动行为</td>
+  </tr>
+  <tr>
+    <td><strong>架构</strong></td>
+    <td>原生 Daemon 模式。Claude Code 进程本身就是 Daemon，通过 Bridge 与 Viewer 通信。所有状态管理、权限控制、工具调用都在同一进程中</td>
+    <td>外部编排模式。一个独立的编排进程管理 Claude Code 实例的生命周期，通过 stdin/stdout 或 API 接口注入指令</td>
+  </tr>
+  <tr>
+    <td><strong>心跳机制</strong></td>
+    <td>原生 <code class="ic">&lt;tick&gt;</code> XML 标签 + SleepTool。系统级别的非阻塞等待，与 Prompt Cache 对齐的 5 分钟间隔</td>
+    <td>外部定时器。通过 cron 或 setInterval 定期向 Claude Code 注入消息模拟心跳</td>
+  </tr>
+  <tr>
+    <td><strong>主动性</strong></td>
+    <td>Proactive Mode 系统提示 + Brief 工具 + Push Notification 三位一体</td>
+    <td>通过 system prompt 指令 + 外部消息注入实现</td>
+  </tr>
+  <tr>
+    <td><strong>记忆/个性化</strong></td>
+    <td>Auto Dream 记忆整合 + Auto Memory Extraction + memdir 持久存储</td>
+    <td>外部记忆文件 + 手动管理</td>
+  </tr>
+  <tr>
+    <td><strong>编排能力</strong></td>
+    <td>原生 Coordinator Mode + Worker 系统 + Scratchpad 共享</td>
+    <td>通过嵌套 Agent 调用或外部编排器</td></tr>
+  <tr>
+    <td><strong>Skill 生态</strong></td>
+    <td>内置 Skill 工具 + MCP 插件生态</td>
+    <td>兼容 Claude Code 的 Skill 系统 + 社区扩展</td>
+  </tr>
+  <tr>
+    <td><strong>Token 消耗</strong></td>
+    <td>Prompt Cache 优化（5 分钟 TTL）+ 构建时 DCE 减少 payload</td>
+    <td>无法利用内部 cache 优化，消耗通常更高</td>
+  </tr>
+  <tr>
+    <td><strong>安全模型</strong></td>
+    <td>Trust Dialog + Hooks + Classifier + 远程权限桥接</td>
+    <td>依赖用户自行配置权限规则</td>
+  </tr>
+  <tr>
+    <td><strong>可用性</strong></td>
+    <td>Feature-gated，需要通过 GrowthBook 灰度</td>
+    <td>开源，直接可用</td>
+  </tr>
+  <tr>
+    <td><strong>GitHub 集成</strong></td>
+    <td>原生 PR 事件订阅（SubscribePRTool）</td>
+    <td>通过 GitHub API 轮询或 webhook 接收器</td>
+  </tr>
+  <tr>
+    <td><strong>断线恢复</strong></td>
+    <td>Daemon 持续运行 + Session History 分页 API + Viewer 重连</td>
+    <td>依赖外部进程管理器（如 tmux, screen）</td>
+  </tr>
+</table>
+
+<h3 id="comparison-tradeoffs">核心取舍</h3>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">KAIROS 的优势</div>
+    <ul>
+      <li><strong>深度集成：</strong>所有子系统紧密协作，没有「胶水层」的性能损失和状态不一致风险</li>
+      <li><strong>官方支持：</strong>随 Claude Code 更新而更新，不会因为内部 API 变化而失效</li>
+      <li><strong>安全可控：</strong>多层门控确保 AI 自主权的渐进式释放</li>
+      <li><strong>成本优化：</strong>利用 Prompt Cache、DCE 等内部优化手段降低 token 消耗</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title">OpenClaw 的优势</div>
+    <ul>
+      <li><strong>即时可用：</strong>不需要等待灰度发布，现在就能用</li>
+      <li><strong>完全透明：</strong>开源代码，所有行为都可审计</li>
+      <li><strong>灵活定制：</strong>可以自由修改心跳间隔、主动行为范围等参数</li>
+      <li><strong>跨模型：</strong>理论上可以适配不同的 AI 模型后端</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== 13. 未来展望 ==================== -->
+<h2 id="future">13. 未来展望与思考</h2>
+
+<h3 id="future-post-prompt">后提示词时代的含义</h3>
+
+<p>
+  KAIROS 标志着我们正在从「提示词时代」过渡到「后提示词时代」。在提示词时代，人与 AI 的关系是：<strong>人说一句话，AI 做一件事</strong>。每次交互都是原子性的，AI 没有「记忆」、没有「计划」、没有「主动性」。
+</p>
+
+<p>
+  在后提示词时代，这个关系变为：<strong>人表达一个意图，AI 自主规划和执行</strong>。AI 拥有持久记忆（Auto Dream + memdir）、主动行为能力（Proactive Mode + Tick）、多任务编排能力（Coordinator Mode + Workers），以及持续运行的底层架构（Daemon + Bridge）。用户不再需要一步一步地指导 AI——而是表达目标，然后让 AI 自己去实现。
+</p>
+
+<h3 id="future-autonomy">AI 自主权的渐进式释放</h3>
+
+<p>
+  KAIROS 的 Feature Flag 体系不仅仅是技术实现的需要——它反映了 Anthropic 对 AI 自主权的<strong>渐进式释放策略</strong>。每个 flag 控制一个自主权维度：
+</p>
+
+<table class="tbl">
+  <tr><th>自主权维度</th><th>控制 Flag</th><th>释放程度</th></tr>
+  <tr><td>持续运行（Daemon）</td><td>KAIROS</td><td>AI 可以在后台持续存在</td></tr>
+  <tr><td>主动沟通（Brief）</td><td>KAIROS_BRIEF</td><td>AI 可以主动发送消息</td></tr>
+  <tr><td>主动行动（Proactive）</td><td>PROACTIVE</td><td>AI 可以主动执行任务</td></tr>
+  <tr><td>多任务编排（Coordinator）</td><td>COORDINATOR_MODE</td><td>AI 可以编排多个并行任务</td></tr>
+  <tr><td>外部集成（Channels）</td><td>KAIROS_CHANNELS</td><td>AI 可以接收外部事件</td></tr>
+  <tr><td>GitHub 集成</td><td>KAIROS_GITHUB_WEBHOOKS</td><td>AI 可以响应代码仓库事件</td></tr>
+  <tr><td>推送通知</td><td>KAIROS_PUSH_NOTIFICATION</td><td>AI 可以在用户不在时联系用户</td></tr>
+</table>
+
+<p>
+  这种渐进式释放是安全导向的设计——每打开一个 flag，AI 获得一个新的自主权维度，同时也引入新的风险面。Anthropic 通过 GrowthBook 灰度发布来逐步观察每个维度的安全性，在确认安全后才向更多用户开放。
+</p>
+
+<h3 id="future-token">Token 消耗问题的可能解法</h3>
+
+<p>
+  KAIROS 的最大技术挑战是 token 消耗。一个持续运行的 Daemon 进程，每 5 分钟一次心跳，每次心跳需要读取完整上下文——这意味着巨大的 API 调用成本。当前的缓解措施包括：
+</p>
+
+<ul>
+  <li><strong>Prompt Cache（5 分钟 TTL）：</strong>在 cache 有效期内唤醒可以复用缓存，大幅减少计算成本</li>
+  <li><strong>SleepTool 的智能间隔：</strong>没有工作时 AI 会睡眠，减少无效心跳</li>
+  <li><strong>Auto Dream 的异步整合：</strong>将记忆整合推迟到空闲时间，避免在活跃会话中消耗额外 token</li>
+  <li><strong>构建时 DCE：</strong>减少系统提示和工具描述的体积，降低每次调用的 token 数</li>
+</ul>
+
+<p>
+  未来可能的进一步优化方向：
+</p>
+
+<ul>
+  <li><strong>增量上下文：</strong>不发送完整上下文，只发送自上次心跳以来的增量变化</li>
+  <li><strong>分层唤醒：</strong>轻量级心跳（只检查有无新事件）和重量级心跳（完整环境评估）分离</li>
+  <li><strong>边缘推理：</strong>在客户端侧运行轻量级模型来处理简单的心跳判断，只在需要时调用完整模型</li>
+  <li><strong>事件驱动替代轮询：</strong>用 webhook 和文件监听替代定期心跳，只在真正有事件时才唤醒</li>
+</ul>
+
+<h3 id="future-evolution">从工具到员工的跨越</h3>
+
+<p>
+  KAIROS 代表的不仅是一次技术升级，更是一次<strong>范式转换</strong>。当 AI 拥有了持续存在、主动行动、长期记忆的能力后，它就不再是一个「工具」——它更像是一个「员工」。
+</p>
+
+<div class="card">
+  <div class="card-title">工具 vs 员工 的特征对比</div>
+  <table class="tbl">
+    <tr><th>特征</th><th>工具</th><th>员工</th><th>KAIROS</th></tr>
+    <tr><td>存在方式</td><td>用时启动，用完关闭</td><td>持续在线</td><td>Daemon 持续运行</td></tr>
+    <tr><td>沟通方式</td><td>你说它做</td><td>双向沟通</td><td>Brief + Push Notification</td></tr>
+    <tr><td>工作方式</td><td>一次一个任务</td><td>多任务并行</td><td>Coordinator + Workers</td></tr>
+    <tr><td>记忆能力</td><td>无状态</td><td>长期记忆</td><td>Auto Dream + memdir</td></tr>
+    <tr><td>主动性</td><td>被动等待指令</td><td>主动发现和解决问题</td><td>Proactive Mode + Tick</td></tr>
+    <tr><td>集成能力</td><td>单一接口</td><td>跨系统协作</td><td>MCP Channels + GitHub Webhooks</td></tr>
+    <tr><td>离线工作</td><td>不可能</td><td>你不在时也能工作</td><td>Daemon + 断线恢复</td></tr>
+  </table>
+</div>
+
+<p>
+  这个转变带来了深刻的问题：当 AI 从工具变为员工，我们需要什么样的新管理范式？如何设定 AI 员工的「工作边界」？如何审计它在你不在时做了什么？如何平衡自主性和可控性？
+</p>
+
+<p>
+  KAIROS 的多层 Feature Flag 体系和渐进式释放策略，正是 Anthropic 对这些问题的初步回答：<strong>不要一次性给 AI 全部自主权——而是一个维度一个维度地释放，在每一步都确认安全后再前进。</strong>
+</p>
+
+<div class="callout">
+  <strong>最后的思考：</strong>Kairos 在希腊语中意味着「关键时刻」。对于 AI 编程助手的发展来说，我们确实正处在这样一个关键时刻。KAIROS 系统不只是 Claude Code 的一个功能升级——它是 Anthropic 对「AI 应该如何与人类协作」这个根本问题的技术回答。从被动工具到主动员工的跨越已经开始，而 KAIROS 就是这个跨越的桥梁。
+</div>
+
+<div class="tags">
+  <span class="tag">KAIROS</span>
+  <span class="tag">Assistant Mode</span>
+  <span class="tag">Daemon</span>
+  <span class="tag">Proactive</span>
+  <span class="tag">Brief</span>
+  <span class="tag">Coordinator</span>
+  <span class="tag">Auto Dream</span>
+  <span class="tag">Feature Flag</span>
+  <span class="tag">GrowthBook</span>
+  <span class="tag">Bridge</span>
+  <span class="tag">SleepTool</span>
+  <span class="tag">Tick</span>
+  <span class="tag">Worker</span>
+  <span class="tag">Channel</span>
+  <span class="tag">Push Notification</span>
+  <span class="tag">OpenClaw</span>
+</div>
+
+<style>.chapter-nav{display:flex;gap:16px;margin:48px 0 0;padding-top:24px;border-top:1px solid var(--border-subtle)}.chapter-nav a{flex:1;display:block;padding:16px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);text-decoration:none!important;transition:all .2s ease}.chapter-nav a:hover{border-color:var(--accent-gold);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}.chapter-nav .cn-dir{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px}.chapter-nav .cn-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:2px}.chapter-nav .cn-desc{font-size:12px;color:var(--text-muted);line-height:1.4}.chapter-nav .cn-prev{text-align:left}.chapter-nav .cn-next{text-align:right}@media(max-width:600px){.chapter-nav{flex-direction:column}}</style>
+<div class="chapter-nav">
+  <a href="../pages/kairos-overview.html" class="cn-prev"><div class="cn-dir">← 上一章</div><div class="cn-title">KAIROS 概述与激活</div><div class="cn-desc">定位 · Feature Flags · 激活链路</div></a>
+  <a href="../pages/kairos-coordinator.html" class="cn-next"><div class="cn-dir">下一章 →</div><div class="cn-title">Coordinator 编排</div><div class="cn-desc">Worker 系统 · 远程架构 · vs OpenClaw</div></a>
+</div>
+
+</div></div><script src="../js/tooltips.js"></script>
+</body>
+</html>

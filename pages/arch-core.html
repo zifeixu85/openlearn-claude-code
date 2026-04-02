@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>核心架构 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u4e92\u52a8\u4f53\u9a8c",items:[
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"LIVE"},
+    {h:"pages/buddy-interactive.html",t:"Buddy \u5b9e\u9a8c\u5ba4",b:"PLAY"},
+    {h:"pages/challenges.html",t:"\u77e5\u8bc6\u95ef\u5173",b:"20\u5173"}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'\x3c/div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+      sh+='\x3c/div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){sb.classList.remove('hidden');document.body.classList.remove('sidebar-off');if(btn)btn.classList.remove('collapsed')}
+  else{sb.classList.add('hidden');document.body.classList.add('sidebar-off');if(btn)btn.classList.add('collapsed')}
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){items.push({level:2,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="H3"){items.push({level:3,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();if(txt.length<3)return;
+      var did=el.id;if(!did){did="d-"+items.length;el.id=did}
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2\x3c/div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='\x3c/div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+        th+='<div class="toc-children">';inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+      }
+    });
+    if(inGroup)th+='\x3c/div>';
+    rt.innerHTML=th;document.body.appendChild(rt);
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        tocAll.forEach(function(l){l.classList.remove("active")});
+        var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+        if(m){m.classList.add("active");var p=m.closest(".toc-children");if(p)p.classList.add("expanded");
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});}
+      }});
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(){var nx=a.nextElementSibling;if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded")});
+    });
+    var fg=rt.querySelector(".toc-children");if(fg)fg.classList.add("expanded");
+    // FAB for mobile
+    var fab=document.createElement("button");fab.className="toc-fab";fab.textContent="\u2630";fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){drt=rt.cloneNode(true);drt.id="drawerToc";drt.className="right-toc as-drawer";
+        var cl=document.createElement("div");cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed";cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);document.body.appendChild(drt);
+        var dov=document.createElement("div");dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");drt.classList.toggle("open");dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);updBtn(saved);
+window.toggleTheme=function(){var c=document.documentElement.getAttribute("data-theme")||"dark";var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("theme",n);updBtn(n)};
+function updBtn(t){var b=document.querySelector(".theme-toggle");if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark"}
+
+// ---- Search ----
+window.openSearch=function(){if(document.getElementById("searchModal"))return;var m=document.createElement("div");m.id="searchModal";m.className="search-modal";m.innerHTML='<div class="search-backdrop" onclick="closeSearch()">\x3c/div><div class="search-box"><input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus /><div id="searchResults" class="search-results">\x3c/div><div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c\x3c/div>\x3c/div>';document.body.appendChild(m);setTimeout(function(){m.classList.add("open")},10);var inp=document.getElementById("searchInput");inp.addEventListener("input",doSearch);inp.addEventListener("keydown",function(e){if(e.key==="Escape")closeSearch();if(e.key==="Enter"){var f=document.querySelector(".search-result-item");if(f)f.click()}if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();var its=document.querySelectorAll(".search-result-item");var cur=document.querySelector(".search-result-item.focused");var idx=-1;its.forEach(function(it,i){if(it===cur)idx=i});if(e.key==="ArrowDown")idx=Math.min(idx+1,its.length-1);else idx=Math.max(idx-1,0);its.forEach(function(it){it.classList.remove("focused")});if(its[idx]){its[idx].classList.add("focused");its[idx].scrollIntoView({block:"nearest"})}}})};
+window.closeSearch=function(){var m=document.getElementById("searchModal");if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}};
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}});
+var PAGES=[
+  {u:B+"index.html",t:"首页 "},
+  {u:B+"pages/arch-core.html",t:"启动与核心循环 启动流程 · QueryEngine · 上下文装配"},
+  {u:B+"pages/arch-runtime.html",t:"运行时机制 工具编排 · 状态管理 · 压缩 · 持久化"},
+  {u:B+"pages/tools-detail.html",t:"内置工具详解 42 个工具的用户价值与机制"},
+  {u:B+"pages/commands-detail.html",t:"斜杠命令手册 67 个命令完整功能说明"},
+  {u:B+"pages/context.html",t:"上下文体系 CLAUDE.md · Rules · Memory · Skills · MCP"},
+  {u:B+"pages/permissions.html",t:"权限系统 6 种模式 · 决策流程 · Hooks"},
+  {u:B+"pages/kairos-overview.html",t:"KAIROS 概述与激活 定位 · Feature Flags · 激活链路"},
+  {u:B+"pages/kairos-proactive.html",t:"KAIROS 主动模式 心跳 · Brief · 专属工具 · Dream"},
+  {u:B+"pages/kairos-coordinator.html",t:"Coordinator 编排 Worker 系统 · 远程架构 · vs OpenClaw"},
+  {u:B+"pages/buddy.html",t:"Buddy 电子宠物 18 物种 · 5 稀有度 · 确定性生成"},
+  {u:B+"pages/voice-vim.html",t:"语音 · Vim · 快捷键 三种输入模式"},
+  {u:B+"pages/remote-bridge.html",t:"远程 · IDE Bridge SSH 隧道 · JWT 双向通信"},
+  {u:B+"pages/plugin-skills.html",t:"插件 · 技能 Plugin 生命周期 · Skills 加载"},
+  {u:B+"pages/memory-system.html",t:"记忆系统 5 种记忆机制全景"},
+  {u:B+"pages/analytics-policy.html",t:"分析 · 合规 Feature Flags · 遥测 · MDM"},
+  {u:B+"pages/ink-ui.html",t:"终端 UI Ink 框架 · 390+ 组件"},
+  {u:B+"pages/internals.html",t:"内部机制 迁移 · 入口点 · Schemas · 费用"},
+  {u:B+"pages/learn-s01.html",t:"S01: Agent Loop 一个循环 + Bash = 一个 Agent"},
+  {u:B+"pages/learn-s02.html",t:"S02: Tool Use dispatch map 让模型长出手臂"},
+  {u:B+"pages/learn-s03.html",t:"S03: TodoWrite 让 Agent 学会做计划"},
+  {u:B+"pages/learn-s04.html",t:"S04: Subagent 用上下文隔离保持主线清晰"},
+  {u:B+"pages/learn-s05.html",t:"S05: Skill Loading 按需加载的知识库"},
+  {u:B+"pages/learn-s06.html",t:"S06: Context Compact 三层压缩保持 Agent 不失忆"},
+  {u:B+"pages/learn-s07.html",t:"S07: Task System 持久化任务图"},
+  {u:B+"pages/learn-s08.html",t:"S08: Background Tasks 后台执行不阻塞"},
+  {u:B+"pages/learn-s09.html",t:"S09: Agent Teams 持久化团队 + JSONL 邮箱"},
+  {u:B+"pages/learn-s10.html",t:"S10: Team Protocols request-response 协议"},
+  {u:B+"pages/learn-s11.html",t:"S11: Autonomous Agents 自组织与自动认领"},
+  {u:B+"pages/learn-s12.html",t:"S12: Worktree Isolation Git Worktree 目录隔离"},
+  {u:B+"pages/glossary.html",t:"术语表 37 个核心术语完整解释"},
+  {u:B+"pages/simulator.html",t:"Agent 循环模拟器 交互"},
+  {u:B+"pages/buddy-interactive.html",t:"Buddy 实验室 精灵 生成器"},
+  {u:B+"pages/hidden-behaviors.html",t:"隐藏行为 反蒸馏 卧底 挛败感检测 anti-distillation undercover frustration"},
+  {u:B+"pages/modular-prompts.html",t:"模块化系统提示 prompt 110 A/B"},
+  {u:B+"pages/agentic-patterns.html",t:"Agent 设计模式 ULTRAPLAN feature flags 安全绕过"}
+];
+function doSearch(){var q=document.getElementById("searchInput").value.trim().toLowerCase();var res=document.getElementById("searchResults");if(!q){res.innerHTML="";return}var hits=[];var pw2=document.querySelector(".page-wrap");if(pw2){pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){var txt=el.textContent||"";if(txt.toLowerCase().indexOf(q)>-1){var id=el.id||(el.closest&&el.closest("[id]")?el.closest("[id]").id:"");hits.push({text:txt.substring(0,120),id:id,local:true})}})}PAGES.forEach(function(pg){if(pg.t.toLowerCase().indexOf(q)>-1)hits.push({text:pg.t,url:pg.u,local:false})});var seen=new Set();var html="";var count=0;hits.forEach(function(h){if(count>=12)return;var key=h.text.substring(0,50);if(seen.has(key))return;seen.add(key);count++;if(h.local&&h.id){html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><span class="sr-type">\u672c\u9875\x3c/span>'+esc2(h.text)+'\x3c/div>'}else if(!h.local){html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'"><span class="sr-type">\u9875\u9762\x3c/span>'+esc2(h.text)+'\x3c/div>'}});if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c\x3c/div>';res.innerHTML=html}
+function esc2(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag official">OFFICIAL SOURCE ANALYSIS</div>
+<h1>核心架构</h1>
+<p class="subtitle">Claude Code 的启动流程、QueryEngine 核心循环、上下文装配机制。</p>
+
+<h2 id="overview">全局架构概览</h2>
+
+<p>在深入各模块之前，先建立一个全景视角。Claude Code 的运行时可以分为以下层次：</p>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-block gold">用户输入层</div>
+    <div class="layer-block gold">Terminal UI / IDE Extension</div>
+    <div class="layer-block gold">斜杠命令解析</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block blue">编排层 (QueryEngine)</div>
+    <div class="layer-block blue">消息循环</div>
+    <div class="layer-block blue">权限拦截</div>
+    <div class="layer-block blue">上下文装配</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block green">执行层</div>
+    <div class="layer-block green">工具并行/串行调度</div>
+    <div class="layer-block green">MCP 桥接</div>
+    <div class="layer-block green">子进程管理</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block purple">状态层 (Zustand Store)</div>
+    <div class="layer-block purple">设置持久化</div>
+    <div class="layer-block purple">Feature Gate</div>
+    <div class="layer-block purple">Token 追踪</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block red">持久化层</div>
+    <div class="layer-block red">会话磁盘写入</div>
+    <div class="layer-block red">上下文压缩</div>
+    <div class="layer-block red">Transcript 归档</div>
+  </div>
+</div>
+
+<p>下面我们自顶向下，逐层拆解。</p>
+
+<!-- ==================== 1. 启动流程 ==================== -->
+
+<h2 id="startup">1. 启动流程 — Claude Code 启动时做了什么</h2>
+
+<p>
+  当你在终端输入 <code class="ic">claude</code> 并按下回车，到你看到交互式提示符，中间发生了远比你想象多的事情。Claude Code 的启动流程经过精心优化，目标是将感知延迟压到最低，同时完成所有必要的初始化工作。
+</p>
+
+<h3 id="startup-parallel">并行 Prefetch 优化</h3>
+
+<p>启动的第一个关键设计是：<strong>绝不串行等待</strong>。以下操作在进程启动后立即并行触发：</p>
+
+<div class="diagram">进程启动 (t=0ms)
+│
+├─→ [并行 A] MDM 配置读取
+│   读取管理配置文件（企业部署场景下的托管设备管理）
+│   结果：获取组织级别的限制和默认值
+│
+├─→ [并行 B] Keychain Prefetch
+│   预取认证凭据（API Key / OAuth Token）
+│   macOS 上调用 security find-generic-password
+│   结果：凭据已在内存中，后续 API 调用零等待
+│
+├─→ [并行 C] Feature Flag 加载
+│   从缓存或远端获取功能开关状态
+│   结果：决定哪些功能/工具对本次会话可见
+│
+└─→ [并行 D] 插件/Skill 发现
+    扫描 ~/.claude/skills/ 和 .claude/skills/ 目录
+    仅读取 manifest，不执行任何 skill 代码
+    结果：技能名称和描述已就绪
+
+所有并行操作完成后 → 进入交互循环</div>
+
+<div class="callout blue">
+  <strong>为什么 Keychain 要 prefetch？</strong>macOS 的 Keychain 访问涉及系统级鉴权弹窗和进程间通信，延迟不可预测（50ms~500ms）。通过在启动时就发起请求，等到用户输入第一条消息并实际需要调用 API 时，凭据大概率已经在内存缓存中了。
+</div>
+
+<h3 id="startup-lazy">重量级模块懒加载</h3>
+
+<p>Claude Code 使用 Bun 作为 JavaScript 运行时，但即使 Bun 的启动速度很快，加载所有依赖仍然会拖慢首屏时间。解决方案是<strong>懒加载</strong>：</p>
+
+<table class="tbl">
+  <tr><th>模块</th><th>大小/复杂度</th><th>加载时机</th><th>为什么懒加载</th></tr>
+  <tr>
+    <td>OpenTelemetry</td>
+    <td>重量级（含多个 proto 定义）</td>
+    <td>第一次 API 调用时</td>
+    <td>遥测不影响核心功能，可以延迟初始化</td>
+  </tr>
+  <tr>
+    <td>gRPC 客户端</td>
+    <td>重量级（含 native binding）</td>
+    <td>MCP 服务连接时</td>
+    <td>不是所有会话都需要 MCP</td>
+  </tr>
+  <tr>
+    <td>Prettier / AST 解析器</td>
+    <td>中等</td>
+    <td>首次代码格式化时</td>
+    <td>只有写入工具需要</td>
+  </tr>
+  <tr>
+    <td>PDF 解析库</td>
+    <td>中等</td>
+    <td>首次读取 PDF 时</td>
+    <td>大多数会话不涉及 PDF</td>
+  </tr>
+</table>
+
+<p>关键技巧是：这些模块的 <code class="ic">import()</code> 调用在 I/O 等待期间触发。例如，当第一个 API 请求正在等待网络响应时，OpenTelemetry 的加载就可以在同一个事件循环中并行完成。</p>
+
+<h3 id="startup-flags">Feature Flag 与 Dead Code Elimination</h3>
+
+<p>
+  Claude Code 在 Bun 构建时使用 <strong>Dead Code Elimination（DCE）</strong>。Feature flag 的值在构建阶段就被确定，条件分支中不可达的代码会被编译器直接移除。
+</p>
+
+<div class="callout green">
+  <strong>这意味着什么？</strong>如果某个实验性功能的 flag 在构建时是 <code class="ic">false</code>，那么相关的所有代码——工具定义、UI 组件、提示模板——都不会出现在最终的 bundle 中。这不是运行时判断，而是编译时裁剪。运行时仍然有一部分 flag 是动态评估的（比如 A/B 测试），但核心功能的开关是静态的。
+</div>
+
+<h3 id="startup-skills">插件/Skill 发现（Cache-Only 模式）</h3>
+
+<p>
+  Skill 发现是启动流程中最巧妙的优化之一。Claude Code 在启动时不会执行任何 skill 的代码，甚至不会完整解析 skill 的内容。它只做两件事：
+</p>
+
+<ol>
+  <li><strong>扫描目录：</strong>遍历 <code class="ic">~/.claude/skills/</code>（全局）和 <code class="ic">.claude/skills/</code>（项目级），读取每个 skill 的 manifest 文件</li>
+  <li><strong>建立索引：</strong>将 skill 名称和简短描述写入内存索引，这个索引会被注入 system prompt，告诉模型有哪些 skill 可用</li>
+</ol>
+
+<p>
+  完整的 skill 内容（详细说明、工具定义、系统提示片段）只有在模型决定使用某个 skill 时才会按需加载。这就是「名字先加载，内容按需」的策略。
+</p>
+
+<details>
+<summary><strong>启动性能数据（典型值）</strong></summary>
+<div class="details-body">
+<table class="tbl">
+  <tr><th>阶段</th><th>耗时</th><th>说明</th></tr>
+  <tr><td>进程启动 + Bun 初始化</td><td>~30ms</td><td>Bun 的冷启动远快于 Node.js</td></tr>
+  <tr><td>核心模块加载</td><td>~50ms</td><td>不含懒加载模块</td></tr>
+  <tr><td>并行 Prefetch（最慢路径）</td><td>~200ms</td><td>通常是 Keychain 或 Feature Flag</td></tr>
+  <tr><td>Skill 发现</td><td>~20ms</td><td>仅扫描 manifest</td></tr>
+  <tr><td>UI 渲染首帧</td><td>~100ms</td><td>Ink (React) 组件挂载</td></tr>
+  <tr><td><strong>总计到可交互</strong></td><td><strong>~300ms</strong></td><td>取决于 Keychain 响应速度</td></tr>
+</table>
+</div>
+</details>
+
+<!-- ==================== 2. QueryEngine ==================== -->
+
+<h2 id="query-engine">2. QueryEngine — 核心循环引擎</h2>
+
+<p>
+  QueryEngine 是 Claude Code 的心脏。它不是一个简单的「发请求、收回复」的函数——它是一个<strong>有状态的异步生成器</strong>，管理着从用户输入到模型响应再到工具执行的完整循环。
+</p>
+
+<h3 id="qe-generator">submitMessage() — Async Generator 设计</h3>
+
+<p>
+  核心入口 <code class="ic">submitMessage()</code> 是一个 <strong>async generator</strong>（<code class="ic">async function*</code>），这意味着它不是一次性返回所有结果，而是逐条 <code class="ic">yield</code> 消息。每一个 yield 的值代表一个可以立即渲染到 UI 的事件：
+</p>
+
+<div class="diagram">submitMessage("帮我重构这个函数")
+  │
+  yield → { type: "user_message", content: "帮我重构这个函数" }
+  │
+  yield → { type: "assistant_start", model: "claude-sonnet-4-..." }
+  │
+  yield → { type: "text_delta", text: "我来看看这个函数..." }
+  yield → { type: "text_delta", text: "的结构。首先..." }
+  │
+  yield → { type: "tool_use", name: "Read", input: { file_path: "..." } }
+  │  ← 工具执行（可能耗时几秒）
+  │
+  yield → { type: "tool_result", output: "文件内容..." }
+  │
+  yield → { type: "text_delta", text: "好的，我建议..." }
+  │
+  yield → { type: "turn_complete", usage: { input: 2340, output: 890 } }</div>
+
+<p>
+  这个设计的好处是<strong>流式渲染</strong>——UI 层不需要等待整个对话轮次结束就可以开始显示内容。用户看到的「逐字打印」效果就来自于这些连续的 <code class="ic">text_delta</code> yield。
+</p>
+
+<h3 id="qe-pipeline">消息处理管线</h3>
+
+<p>当用户输入一条消息后，它会经过一条完整的处理管线：</p>
+
+<div class="flow">
+  <div class="flow-node">用户输入</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">processUserInput</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">系统提示合并</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">query() 循环</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">响应/工具调用</div>
+</div>
+
+<details>
+<summary><strong>processUserInput 阶段详解</strong></summary>
+<div class="details-body">
+<p><code class="ic">processUserInput</code> 是一个前置处理器，它在消息发送到模型之前做以下事情：</p>
+
+<table class="tbl">
+  <tr><th>处理项</th><th>说明</th></tr>
+  <tr>
+    <td><strong>斜杠命令检测</strong></td>
+    <td>如果输入以 <code class="ic">/</code> 开头，直接分发到对应的命令处理器，不经过模型。例如 <code class="ic">/clear</code> 直接清空对话历史。</td>
+  </tr>
+  <tr>
+    <td><strong>附件处理</strong></td>
+    <td>检测输入中是否包含文件路径或 URL 引用，如果有，将文件内容或 URL 抓取结果作为附件注入消息。</td>
+  </tr>
+  <tr>
+    <td><strong>模型选择</strong></td>
+    <td>根据当前设置确定使用哪个模型（默认 / fast mode / 用户指定），以及对应的 API endpoint。</td>
+  </tr>
+  <tr>
+    <td><strong>图片处理</strong></td>
+    <td>如果消息包含图片，压缩并编码为 base64，转换为 Claude 能理解的多模态内容格式。</td>
+  </tr>
+  <tr>
+    <td><strong>上下文窗口检查</strong></td>
+    <td>预估本次请求的 token 量，如果接近上下文窗口上限，触发 auto-compact（详见后文）。</td>
+  </tr>
+</table>
+</div>
+</details>
+
+<h3 id="qe-tool-loop">工具调用循环</h3>
+
+<p>
+  这是 QueryEngine 中最关键的逻辑：<strong>当模型的响应中 <code class="ic">stop_reason</code> 为 <code class="ic">"tool_use"</code> 时，引擎不会停下来，而是继续循环</strong>。
+</p>
+
+<div class="diagram">query() 循环内部：
+
+while (true) {
+  response = await callAPI(messages)
+
+  if (response.stop_reason === "end_turn") {
+    // 模型认为任务完成，退出循环
+    break
+  }
+
+  if (response.stop_reason === "tool_use") {
+    // 提取所有工具调用
+    toolCalls = extractToolCalls(response)
+
+    // 执行工具（可能并行，可能串行）
+    results = await executeTools(toolCalls)
+
+    // 将结果追加到 messages[]
+    messages.push(response, ...results)
+
+    // 继续循环——带着工具结果再次调用模型
+    continue
+  }
+}</div>
+
+<p>
+  这意味着一次用户输入可以触发<strong>多轮模型调用</strong>。例如，用户说「帮我找到并修复这个 bug」，模型可能先调用 Grep 搜索相关文件，再调用 Read 阅读代码，然后调用 Edit 修改文件，每一步都是一次完整的 API 往返。
+</p>
+
+<div class="callout">
+  <strong>循环是否会无限运行？</strong>不会。有多重保护：1) 模型最终会返回 <code class="ic">end_turn</code>；2) 有最大工具调用轮次限制；3) token 耗尽会自动停止；4) 用户随时可以按 Esc 中断。
+</div>
+
+<h3 id="qe-crash">崩溃恢复机制</h3>
+
+<p>
+  Claude Code 有一个重要的设计决策：<strong>消息在 API 响应返回之前就写入磁盘</strong>。
+</p>
+
+<p>
+  具体来说，每次调用 API 之前，当前的完整消息历史（包括刚刚追加的用户消息和工具结果）都会被序列化并写入本地文件系统。这意味着即使进程在 API 调用期间崩溃（网络断开、系统休眠、意外终止），下次启动时对话状态依然完整——最多丢失模型正在生成的那一条回复。
+</p>
+
+<h3 id="qe-permission">Permission Wrapping</h3>
+
+<p>
+  在工具执行之前，每一次工具调用都会经过权限系统的拦截。这不是一个简单的 yes/no 检查，而是一个完整的决策链：
+</p>
+
+<div class="flow">
+  <div class="flow-node">工具调用请求</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Allow Rules</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">Deny Rules</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">PreToolUse Hooks</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">用户确认/自动放行</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-node">执行</div>
+</div>
+
+<details>
+<summary><strong>权限决策的优先级顺序</strong></summary>
+<div class="details-body">
+<ol>
+  <li><strong>Deny Rules（最高优先级）：</strong>如果工具/路径匹配了 deny 规则，直接拒绝，没有任何覆盖机制</li>
+  <li><strong>Allow Rules：</strong>如果匹配了 allow 规则（用户之前批准过或在配置中预设），自动放行</li>
+  <li><strong>ReadOnly 工具：</strong>只读工具（如 Read、Grep、Glob）在大多数权限模式下自动放行</li>
+  <li><strong>PreToolUse Hooks：</strong>用户配置的自定义钩子可以在此阶段拦截或修改工具调用</li>
+  <li><strong>交互式确认：</strong>如果以上都没有明确决定，弹出权限确认界面让用户选择</li>
+</ol>
+</div>
+</details>
+
+<h3 id="qe-token">Token 追踪和用量统计</h3>
+
+<p>
+  QueryEngine 内部维护着精确的 token 计数器。每次 API 调用返回时，响应头中的 usage 信息会被提取并累加：
+</p>
+
+<table class="tbl">
+  <tr><th>统计项</th><th>用途</th></tr>
+  <tr><td>input_tokens（本轮）</td><td>计算本轮上下文大小，判断是否需要压缩</td></tr>
+  <tr><td>output_tokens（本轮）</td><td>计算模型生成量，影响费用估算</td></tr>
+  <tr><td>cache_creation_input_tokens</td><td>Prompt caching 命中分析</td></tr>
+  <tr><td>cache_read_input_tokens</td><td>衡量缓存效率</td></tr>
+  <tr><td>累计 input/output tokens</td><td>整个会话的总用量，显示在状态栏</td></tr>
+  <tr><td>cost 估算</td><td>基于模型价格和 token 数量计算实时费用</td></tr>
+</table>
+
+<!-- ==================== 3. 上下文装配 ==================== -->
+
+<h2 id="context-assembly">3. 上下文装配 — 模型每次调用时看到什么</h2>
+
+<p>
+  每次调用 Claude API 时，发送的不是一条简单的消息，而是一个精心组装的上下文包。理解这个组装过程，对于写出有效的 CLAUDE.md 和优化工具使用至关重要。
+</p>
+
+<h3 id="ctx-system">System Prompt 的组成</h3>
+
+<p>Claude Code 的 system prompt 不是一段固定文本。它是多个来源动态拼接的结果：</p>
+
+<div class="layers">
+  <div class="layer">
+    <div class="layer-block gold">核心人格与行为规则</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block blue">CLAUDE.md 内容（全局 + 项目级 + 父目录链）</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block green">Skill 描述索引</div>
+    <div class="layer-block green">MCP 工具名列表</div>
+  </div>
+  <div class="layer">
+    <div class="layer-block purple">Auto Memory 索引</div>
+    <div class="layer-block purple">活跃规则 (Rules)</div>
+  </div>
+</div>
+
+<details>
+<summary><strong>各部分的详细内容</strong></summary>
+<div class="details-body">
+
+<h4>核心人格与行为规则</h4>
+<p>这是 Claude Code 内置的基础指令，定义了 Claude 在 CLI 环境下应该如何行为：使用工具而非猜测、在修改文件前先阅读、遵循项目代码风格等。这部分用户不可修改。</p>
+
+<h4>CLAUDE.md 内容</h4>
+<p>Claude Code 会从多个位置查找并合并 CLAUDE.md 文件：</p>
+<ol>
+  <li><code class="ic">~/.claude/CLAUDE.md</code> — 全局指令，适用于所有项目</li>
+  <li>从 git 仓库根目录到当前工作目录路径上每一层的 <code class="ic">CLAUDE.md</code></li>
+  <li><code class="ic">.claude/CLAUDE.md</code> — 项目级指令</li>
+</ol>
+<p>所有找到的文件会按顺序拼接。如果内容重复或冲突，后面的覆盖前面的。</p>
+
+<h4>Skill 描述索引</h4>
+<p>启动时扫描的 skill manifest 信息会在这里列出，格式类似：</p>
+<p><em>「可用 skill：lumi-url-to-markdown（抓取网页内容转 Markdown）、pdf（PDF 文件处理）...」</em></p>
+<p>注意：这里只有名字和一行描述，完整的 skill 提示内容在模型决定使用时才会注入。</p>
+
+<h4>MCP 工具名列表</h4>
+<p>当前连接的 MCP 服务器提供的工具列表。同样只列名字和简短说明，完整 schema 按需加载。</p>
+
+<h4>Auto Memory 索引</h4>
+<p>如果用户启用了记忆功能，之前对话中积累的关键事实和偏好会作为索引注入 system prompt，帮助模型在跨会话间保持一致性。</p>
+</div>
+</details>
+
+<h3 id="ctx-messages">对话历史：累积的 messages[]</h3>
+
+<p>
+  这是 API 调用中最大的组成部分。<code class="ic">messages[]</code> 数组包含了从会话开始到当前的所有消息——用户消息、模型回复、工具调用和工具结果。
+</p>
+
+<div class="callout blue">
+  <strong>为什么上下文会越来越大？</strong>每一轮对话都会向 <code class="ic">messages[]</code> 追加新内容。如果你在一个长会话中反复读取大文件、执行复杂搜索，上下文可以很快膨胀到数十万 token。这就是为什么 auto-compact 机制如此重要（详见第 6 节）。
+</div>
+
+<h3 id="ctx-tools">工具定义：动态过滤</h3>
+
+<p>
+  发送给模型的工具列表不是固定的 42 个。每次 API 调用前，工具列表会经过多重过滤：
+</p>
+
+<table class="tbl">
+  <tr><th>过滤条件</th><th>效果</th></tr>
+  <tr><td>Deny Rules</td><td>被禁用的工具完全从列表中移除，模型看不到它们</td></tr>
+  <tr><td>Feature Flags</td><td>未启用的实验性工具不会出现</td></tr>
+  <tr><td>Simple Mode</td><td>简化模式下隐藏高级工具，降低认知负载</td></tr>
+  <tr><td>MCP 连接状态</td><td>只展示当前已连接的 MCP 服务器提供的工具</td></tr>
+  <tr><td>ToolSearch 延迟发现</td><td>一些不常用的工具通过 ToolSearch 按需暴露，初始不在列表中</td></tr>
+</table>
+
+<h3 id="ctx-skills-mcp">技能和 MCP：按需注入策略</h3>
+
+<p>
+  这是一个精妙的两阶段策略：
+</p>
+
+<ol>
+  <li><strong>第一阶段（始终加载）：</strong>Skill 名称 + 一行描述出现在 system prompt 中，MCP 工具名出现在工具列表中。成本极低（几十个 token）。</li>
+  <li><strong>第二阶段（按需加载）：</strong>当模型决定使用某个 skill 或 MCP 工具时，才加载完整的提示模板、参数 schema、使用示例等。这些内容可能有数千个 token。</li>
+</ol>
+
+<p>
+  这种设计让模型知道有哪些能力可用（不会遗漏），但又不会在每次调用时浪费大量 token 在不相关的工具定义上。
+</p>
+
+<!-- ==================== 4. 工具执行编排 ==================== -->
+
+<style>.chapter-nav{display:flex;gap:16px;margin:48px 0 0;padding-top:24px;border-top:1px solid var(--border-subtle)}.chapter-nav a{flex:1;display:block;padding:16px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);text-decoration:none!important;transition:all .2s ease}.chapter-nav a:hover{border-color:var(--accent-gold);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}.chapter-nav .cn-dir{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px}.chapter-nav .cn-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:2px}.chapter-nav .cn-desc{font-size:12px;color:var(--text-muted);line-height:1.4}.chapter-nav .cn-prev{text-align:left}.chapter-nav .cn-next{text-align:right}@media(max-width:600px){.chapter-nav{flex-direction:column}}</style>
+<div class="chapter-nav">
+  <a href="../index.html" class="cn-prev"><div class="cn-dir">← 上一章</div><div class="cn-title">首页</div><div class="cn-desc"></div></a>
+  <a href="../pages/arch-runtime.html" class="cn-next"><div class="cn-dir">下一章 →</div><div class="cn-title">运行时机制</div><div class="cn-desc">工具编排 · 状态管理 · 压缩 · 持久化</div></a>
+</div>
+
+</div></div><script src="../js/tooltips.js"></script>
+</body>
+</html>

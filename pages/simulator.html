@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 循环模拟器 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+<link rel="stylesheet" href="../css/interactive.css">
+<style>
+/* ========== SIMULATOR LAYOUT ========== */
+.sim-container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  margin-top: 24px;
+}
+@media (max-width: 900px) {
+  .sim-container { grid-template-columns: 1fr; }
+}
+
+/* ========== FLOW DIAGRAM ========== */
+.flow-diagram {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 18px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.flow-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border-subtle);
+  color: var(--text-secondary);
+  transition: all 0.4s ease;
+  white-space: nowrap;
+}
+.flow-node.active {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 18px rgba(232,167,65,0.25);
+  animation: nodeGlow 1.5s ease-in-out infinite;
+}
+@keyframes nodeGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(232,167,65,0.2); }
+  50% { box-shadow: 0 0 24px rgba(232,167,65,0.4); }
+}
+.flow-arrow {
+  font-size: 18px;
+  color: var(--text-muted);
+  padding: 0 6px;
+  user-select: none;
+}
+.flow-arrow.active { color: var(--accent-gold); }
+.flow-loop-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-gold);
+  margin-left: 8px;
+  opacity: 0.6;
+}
+
+/* ========== LEFT PANEL ========== */
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.panel-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.panel-card h3 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+/* Controls */
+.controls-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.sim-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.sim-btn:hover { background: var(--bg-hover); border-color: var(--accent-gold); }
+.sim-btn.primary {
+  background: var(--accent-gold);
+  color: #fff;
+  border-color: var(--accent-gold);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.sim-btn.primary:hover { opacity: 0.85; }
+.sim-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.scenario-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.scenario-select:focus { outline: none; border-color: var(--accent-gold); }
+.scenario-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.speed-row label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.speed-slider {
+  flex: 1;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+.speed-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-gold);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Tool Selector */
+.tool-list { display: flex; flex-direction: column; gap: 6px; }
+.tool-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.tool-item.available { color: var(--text-primary); }
+.tool-item.unavailable { color: var(--text-muted); opacity: 0.4; }
+.tool-item.calling {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-dim);
+  animation: toolPulse 1s ease-in-out infinite;
+}
+@keyframes toolPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(232,167,65,0); }
+  50% { box-shadow: 0 0 12px rgba(232,167,65,0.3); }
+}
+.tool-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background 0.3s;
+}
+.tool-item.available .tool-dot { background: var(--accent-green); }
+.tool-item.calling .tool-dot { background: var(--accent-gold); }
+
+/* ========== RIGHT PANEL ========== */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 400px;
+}
+
+/* Messages */
+.messages-panel {
+  flex: 1;
+  max-height: 500px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.messages-panel::-webkit-scrollbar { width: 4px; }
+.messages-panel::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 2px; }
+
+.msg-card {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  border-left: 3px solid transparent;
+  animation: msgSlideIn 0.35s ease-out;
+  font-size: 14px;
+  line-height: 1.6;
+}
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.msg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.msg-role-icon { font-size: 15px; }
+.msg-content { color: var(--text-primary); }
+.msg-content pre {
+  background: var(--bg-deep);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  margin-top: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.msg-user { border-left-color: var(--accent-blue); background: var(--accent-blue-dim); }
+.msg-user .msg-header { color: var(--accent-blue); }
+.msg-assistant { border-left-color: var(--accent-green); background: var(--accent-green-dim); }
+.msg-assistant .msg-header { color: var(--accent-green); }
+.msg-tool-call { border-left-color: var(--accent-gold); background: var(--accent-gold-dim); }
+.msg-tool-call .msg-header { color: var(--accent-gold); }
+.msg-tool-result { border-left-color: var(--accent-gold); background: rgba(232,167,65,0.06); }
+.msg-tool-result .msg-header { color: var(--accent-amber); }
+.msg-thinking { border-left-color: var(--accent-purple); background: var(--accent-purple-dim); }
+.msg-thinking .msg-header { color: var(--accent-purple); }
+.msg-subagent { border-left-color: var(--accent-cyan); background: rgba(137,221,255,0.08); }
+.msg-subagent .msg-header { color: var(--accent-cyan); }
+
+.msg-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 60px 20px;
+}
+
+/* State Panel */
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+.state-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  text-align: center;
+}
+.state-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.state-value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+.state-value.gold { color: var(--accent-gold); }
+.state-value.green { color: var(--accent-green); }
+.state-value.blue { color: var(--accent-blue); }
+.state-value.bump { animation: bumpVal 0.4s ease; }
+@keyframes bumpVal {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ========== TIMELINE ========== */
+.timeline-bar {
+  grid-column: 1 / -1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+.tl-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+}
+.tl-dot:hover { transform: scale(1.3); }
+.tl-dot.past { background: var(--text-muted); border-color: var(--text-muted); }
+.tl-dot.past.type-user { background: var(--accent-blue); border-color: var(--accent-blue); }
+.tl-dot.past.type-thinking { background: var(--accent-purple); border-color: var(--accent-purple); }
+.tl-dot.past.type-tool-call { background: var(--accent-gold); border-color: var(--accent-gold); }
+.tl-dot.past.type-tool-result { background: var(--accent-amber); border-color: var(--accent-amber); }
+.tl-dot.past.type-final { background: var(--accent-green); border-color: var(--accent-green); }
+.tl-dot.past.type-subagent { background: var(--accent-cyan); border-color: var(--accent-cyan); }
+.tl-dot.current {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold);
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,167,65,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(232,167,65,0); }
+}
+.tl-connector {
+  width: 16px; height: 2px;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+}
+.tl-connector.active { background: var(--accent-gold); }
+.tl-dot-label {
+  position: absolute;
+  top: 18px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.tl-dot:hover .tl-dot-label { opacity: 1; }
+
+/* ========== CELEBRATION ========== */
+.celebration {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-elevated);
+  border: 2px solid var(--accent-green);
+  border-radius: var(--radius-lg);
+  padding: 32px 48px;
+  text-align: center;
+  z-index: 1000;
+  animation: celebIn 0.5s ease;
+  box-shadow: 0 0 60px rgba(78,201,176,0.3);
+}
+@keyframes celebIn {
+  from { opacity: 0; transform: translate(-50%,-50%) scale(0.7); }
+  to { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}
+.celebration h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--accent-green);
+  margin-bottom: 8px;
+}
+.celebration p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.celeb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u4e92\u52a8\u4f53\u9a8c",items:[
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"LIVE"},
+    {h:"pages/buddy-interactive.html",t:"Buddy \u5b9e\u9a8c\u5ba4",b:"PLAY"},
+    {h:"pages/challenges.html",t:"\u77e5\u8bc6\u95ef\u5173",b:"20\u5173"}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'\x3c/div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+      sh+='\x3c/div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){sb.classList.remove('hidden');document.body.classList.remove('sidebar-off');if(btn)btn.classList.remove('collapsed')}
+  else{sb.classList.add('hidden');document.body.classList.add('sidebar-off');if(btn)btn.classList.add('collapsed')}
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){items.push({level:2,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="H3"){items.push({level:3,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();if(txt.length<3)return;
+      var did=el.id;if(!did){did="d-"+items.length;el.id=did}
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2\x3c/div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='\x3c/div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+        th+='<div class="toc-children">';inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+      }
+    });
+    if(inGroup)th+='\x3c/div>';
+    rt.innerHTML=th;document.body.appendChild(rt);
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        tocAll.forEach(function(l){l.classList.remove("active")});
+        var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+        if(m){m.classList.add("active");var p=m.closest(".toc-children");if(p)p.classList.add("expanded");
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});}
+      }});
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(){var nx=a.nextElementSibling;if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded")});
+    });
+    var fg=rt.querySelector(".toc-children");if(fg)fg.classList.add("expanded");
+    // FAB for mobile
+    var fab=document.createElement("button");fab.className="toc-fab";fab.textContent="\u2630";fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){drt=rt.cloneNode(true);drt.id="drawerToc";drt.className="right-toc as-drawer";
+        var cl=document.createElement("div");cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed";cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);document.body.appendChild(drt);
+        var dov=document.createElement("div");dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");drt.classList.toggle("open");dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);updBtn(saved);
+window.toggleTheme=function(){var c=document.documentElement.getAttribute("data-theme")||"dark";var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("theme",n);updBtn(n)};
+function updBtn(t){var b=document.querySelector(".theme-toggle");if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark"}
+
+// ---- Search ----
+window.openSearch=function(){if(document.getElementById("searchModal"))return;var m=document.createElement("div");m.id="searchModal";m.className="search-modal";m.innerHTML='<div class="search-backdrop" onclick="closeSearch()">\x3c/div><div class="search-box"><input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus /><div id="searchResults" class="search-results">\x3c/div><div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c\x3c/div>\x3c/div>';document.body.appendChild(m);setTimeout(function(){m.classList.add("open")},10);var inp=document.getElementById("searchInput");inp.addEventListener("input",doSearch);inp.addEventListener("keydown",function(e){if(e.key==="Escape")closeSearch();if(e.key==="Enter"){var f=document.querySelector(".search-result-item");if(f)f.click()}if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();var its=document.querySelectorAll(".search-result-item");var cur=document.querySelector(".search-result-item.focused");var idx=-1;its.forEach(function(it,i){if(it===cur)idx=i});if(e.key==="ArrowDown")idx=Math.min(idx+1,its.length-1);else idx=Math.max(idx-1,0);its.forEach(function(it){it.classList.remove("focused")});if(its[idx]){its[idx].classList.add("focused");its[idx].scrollIntoView({block:"nearest"})}}})};
+window.closeSearch=function(){var m=document.getElementById("searchModal");if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}};
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}});
+var PAGES=[
+  {u:B+"index.html",t:"首页 "},
+  {u:B+"pages/arch-core.html",t:"启动与核心循环 启动流程 · QueryEngine · 上下文装配"},
+  {u:B+"pages/arch-runtime.html",t:"运行时机制 工具编排 · 状态管理 · 压缩 · 持久化"},
+  {u:B+"pages/tools-detail.html",t:"内置工具详解 42 个工具的用户价值与机制"},
+  {u:B+"pages/commands-detail.html",t:"斜杠命令手册 67 个命令完整功能说明"},
+  {u:B+"pages/context.html",t:"上下文体系 CLAUDE.md · Rules · Memory · Skills · MCP"},
+  {u:B+"pages/permissions.html",t:"权限系统 6 种模式 · 决策流程 · Hooks"},
+  {u:B+"pages/kairos-overview.html",t:"KAIROS 概述与激活 定位 · Feature Flags · 激活链路"},
+  {u:B+"pages/kairos-proactive.html",t:"KAIROS 主动模式 心跳 · Brief · 专属工具 · Dream"},
+  {u:B+"pages/kairos-coordinator.html",t:"Coordinator 编排 Worker 系统 · 远程架构 · vs OpenClaw"},
+  {u:B+"pages/buddy.html",t:"Buddy 电子宠物 18 物种 · 5 稀有度 · 确定性生成"},
+  {u:B+"pages/voice-vim.html",t:"语音 · Vim · 快捷键 三种输入模式"},
+  {u:B+"pages/remote-bridge.html",t:"远程 · IDE Bridge SSH 隧道 · JWT 双向通信"},
+  {u:B+"pages/plugin-skills.html",t:"插件 · 技能 Plugin 生命周期 · Skills 加载"},
+  {u:B+"pages/memory-system.html",t:"记忆系统 5 种记忆机制全景"},
+  {u:B+"pages/analytics-policy.html",t:"分析 · 合规 Feature Flags · 遥测 · MDM"},
+  {u:B+"pages/ink-ui.html",t:"终端 UI Ink 框架 · 390+ 组件"},
+  {u:B+"pages/internals.html",t:"内部机制 迁移 · 入口点 · Schemas · 费用"},
+  {u:B+"pages/learn-s01.html",t:"S01: Agent Loop 一个循环 + Bash = 一个 Agent"},
+  {u:B+"pages/learn-s02.html",t:"S02: Tool Use dispatch map 让模型长出手臂"},
+  {u:B+"pages/learn-s03.html",t:"S03: TodoWrite 让 Agent 学会做计划"},
+  {u:B+"pages/learn-s04.html",t:"S04: Subagent 用上下文隔离保持主线清晰"},
+  {u:B+"pages/learn-s05.html",t:"S05: Skill Loading 按需加载的知识库"},
+  {u:B+"pages/learn-s06.html",t:"S06: Context Compact 三层压缩保持 Agent 不失忆"},
+  {u:B+"pages/learn-s07.html",t:"S07: Task System 持久化任务图"},
+  {u:B+"pages/learn-s08.html",t:"S08: Background Tasks 后台执行不阻塞"},
+  {u:B+"pages/learn-s09.html",t:"S09: Agent Teams 持久化团队 + JSONL 邮箱"},
+  {u:B+"pages/learn-s10.html",t:"S10: Team Protocols request-response 协议"},
+  {u:B+"pages/learn-s11.html",t:"S11: Autonomous Agents 自组织与自动认领"},
+  {u:B+"pages/learn-s12.html",t:"S12: Worktree Isolation Git Worktree 目录隔离"},
+  {u:B+"pages/glossary.html",t:"术语表 37 个核心术语完整解释"},
+  {u:B+"pages/simulator.html",t:"Agent 循环模拟器 交互"},
+  {u:B+"pages/buddy-interactive.html",t:"Buddy 实验室 精灵 生成器"},
+  {u:B+"pages/hidden-behaviors.html",t:"隐藏行为 反蒸馏 卧底 挛败感检测 anti-distillation undercover frustration"},
+  {u:B+"pages/modular-prompts.html",t:"模块化系统提示 prompt 110 A/B"},
+  {u:B+"pages/agentic-patterns.html",t:"Agent 设计模式 ULTRAPLAN feature flags 安全绕过"}
+];
+function doSearch(){var q=document.getElementById("searchInput").value.trim().toLowerCase();var res=document.getElementById("searchResults");if(!q){res.innerHTML="";return}var hits=[];var pw2=document.querySelector(".page-wrap");if(pw2){pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){var txt=el.textContent||"";if(txt.toLowerCase().indexOf(q)>-1){var id=el.id||(el.closest&&el.closest("[id]")?el.closest("[id]").id:"");hits.push({text:txt.substring(0,120),id:id,local:true})}})}PAGES.forEach(function(pg){if(pg.t.toLowerCase().indexOf(q)>-1)hits.push({text:pg.t,url:pg.u,local:false})});var seen=new Set();var html="";var count=0;hits.forEach(function(h){if(count>=12)return;var key=h.text.substring(0,50);if(seen.has(key))return;seen.add(key);count++;if(h.local&&h.id){html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><span class="sr-type">\u672c\u9875\x3c/span>'+esc2(h.text)+'\x3c/div>'}else if(!h.local){html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'"><span class="sr-type">\u9875\u9762\x3c/span>'+esc2(h.text)+'\x3c/div>'}});if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c\x3c/div>';res.innerHTML=html}
+function esc2(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"},
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"INTERACTIVE"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      sh+='<div class="sidebar-sub-label">'+it.sub+'\x3c/div>';
+      it.items.forEach(function(p){
+        var a=loc.indexOf(p.h)>=0?' active':'';
+        sh+='<a href="'+B+p.h+'" class="sidebar-link'+a+'">'+p.t
+          +(p.b?' <span class="sidebar-badge">'+p.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+    } else {
+      var a2=loc.indexOf(it.h)>=0?' active':'';
+      sh+='<a href="'+B+it.h+'" class="sidebar-link'+a2+'">'+it.t
+        +(it.b?' <span class="sidebar-badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// ---- Sidebar logic ----
+var _sbOpen=localStorage.getItem('sidebarOpen')!=='false';
+function _applySidebar(){document.body.classList.toggle('sidebar-open',_sbOpen);document.body.classList.toggle('sidebar-closed',!_sbOpen);}
+function _toggleSidebar(){_sbOpen=!_sbOpen;localStorage.setItem('sidebarOpen',_sbOpen);_applySidebar();}
+_applySidebar();
+window.toggleSidebar=function(){var s=document.getElementById('sidebar');s.classList.toggle('mobile-open');};
+
+// ---- Theme ----
+var _th=localStorage.getItem('theme')||'dark';
+function _applyTh(){document.documentElement.setAttribute('data-theme',_th);document.querySelector('.theme-toggle').textContent=_th==='dark'?'\u2600 Light':'\u263e Dark';}
+window.toggleTheme=function(){_th=_th==='dark'?'light':'dark';localStorage.setItem('theme',_th);_applyTh();};
+_applyTh();
+
+// ---- Search stub ----
+window.openSearch=function(){};
+
+function esc(s){return s.replace(/\x3c/g,"&lt;").replace(/>/g,"&gt;")}
+function esc2(s){return s.replace(/\x3c/g,"&lt;").replace(/>/g,"&gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag interactive">INTERACTIVE</div>
+<h1>Agent 循环模拟器</h1>
+<p class="subtitle">交互式模拟 Agent Loop 的执行过程。逐步观察消息如何累积、工具如何调用、循环如何决定继续或终止。</p>
+
+<h2 id="flow-overview">执行流程</h2>
+
+<div class="sim-container" id="simContainer">
+
+  <!-- Flow Diagram -->
+  <div class="flow-diagram" id="flowDiagram">
+    <div class="flow-node" id="fn-user" data-label="用户">用户输入</div>
+    <span class="flow-arrow" id="fa-1">&#8594;</span>
+    <div class="flow-node" id="fn-llm" data-label="LLM">LLM 推理</div>
+    <span class="flow-arrow" id="fa-2">&#8594;</span>
+    <div class="flow-node" id="fn-dispatch" data-label="分发">工具分发</div>
+    <span class="flow-arrow" id="fa-3">&#8594;</span>
+    <div class="flow-node" id="fn-execute" data-label="执行">工具执行</div>
+    <span class="flow-arrow" id="fa-4">&#8594;</span>
+    <div class="flow-node" id="fn-return" data-label="返回">结果返回</div>
+    <span class="flow-arrow" id="fa-loop">&#8635;</span>
+    <span class="flow-loop-label">循环</span>
+  </div>
+
+  <!-- Left Panel -->
+  <div class="left-panel">
+
+    <div class="panel-card">
+      <h3 id="controls">控制面板</h3>
+      <label class="scenario-desc" style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:4px;">场景选择</label>
+      <select class="scenario-select" id="scenarioSelect"></select>
+      <div class="scenario-desc" id="scenarioDesc"></div>
+      <div class="controls-row">
+        <button class="sim-btn primary" id="btnNext">下一步 &#8594;</button>
+        <button class="sim-btn" id="btnReset">&#9194; 重置</button>
+        <button class="sim-btn" id="btnPlay">&#9654; 自动播放</button>
+      </div>
+      <div class="speed-row">
+        <label>速度</label>
+        <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="3" step="0.5" value="1">
+        <span class="speed-val" id="speedVal">1x</span>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3 id="tools-available">可用工具</h3>
+      <div class="tool-list" id="toolList"></div>
+    </div>
+
+    <div class="panel-card">
+      <h3 id="keyboard-shortcuts">键盘快捷键</h3>
+      <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);line-height:2;">
+        <div><kbd style="background:var(--bg-elevated);padding:2px 6px;border-radius:3px;border:1px solid var(--border-medium);">&#8594;</kbd> 下一步</div>
+        <div><kbd style="background:var(--bg-elevated);padding:2px 6px;border-radius:3px;border:1px solid var(--border-medium);">R</kbd> 重置</div>
+        <div><kbd style="background:var(--bg-elevated);padding:2px 6px;border-radius:3px;border:1px solid var(--border-medium);">Space</kbd> 播放/暂停</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+
+    <div class="panel-card" style="flex:1;display:flex;flex-direction:column;">
+      <h3 id="messages-view">消息列表 <span style="float:right;color:var(--accent-gold);" id="msgCountBadge">0 条</span></h3>
+      <div class="messages-panel" id="messagesPanel">
+        <div class="msg-empty">&#128300; 选择场景并点击「下一步」开始模拟</div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3 id="runtime-state">运行时状态</h3>
+      <div class="state-grid">
+        <div class="state-item">
+          <div class="state-label">stop_reason</div>
+          <div class="state-value" id="stStopReason">--</div>
+        </div>
+        <div class="state-item">
+          <div class="state-label">messages.length</div>
+          <div class="state-value blue" id="stMsgLen">0</div>
+        </div>
+        <div class="state-item">
+          <div class="state-label">loop_iteration</div>
+          <div class="state-value" id="stLoopIter">0</div>
+        </div>
+        <div class="state-item">
+          <div class="state-label">tools_called</div>
+          <div class="state-value gold" id="stToolsCalled">0</div>
+        </div>
+        <div class="state-item">
+          <div class="state-label">tokens (est.)</div>
+          <div class="state-value" id="stTokens">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="panel-card" style="grid-column:1/-1;padding:14px 20px;">
+    <h3 id="timeline" style="margin-bottom:10px;">执行时间线</h3>
+    <div class="timeline-bar" id="timelineBar"></div>
+  </div>
+
+</div>
+
+<h2 id="how-it-works">工作原理</h2>
+
+<p>这个模拟器演示了 Claude Code Agent Loop 的核心机制：</p>
+
+<ul>
+  <li><strong>消息累积</strong>：每一步都向 <code>messages[]</code> 数组追加新消息，LLM 看到的是完整的对话历史</li>
+  <li><strong>stop_reason 驱动</strong>：当 LLM 返回 <code>tool_use</code> 时循环继续；返回 <code>end_turn</code> 时循环终止</li>
+  <li><strong>工具分发</strong>：根据 LLM 输出的工具名称，路由到对应的工具实现</li>
+  <li><strong>Subagent 隔离</strong>：子 Agent 拥有独立的 messages 数组，完成后仅返回摘要文本</li>
+</ul>
+
+<h3 id="scenario-details">场景说明</h3>
+
+<ul>
+  <li><strong>S01 基本循环</strong>：最简单的 Agent Loop，只使用 Bash 工具创建文件并验证</li>
+  <li><strong>S02 多工具协作</strong>：展示搜索 -> 读取 -> 编辑的典型工作流</li>
+  <li><strong>S04 Subagent 委派</strong>：主 Agent 创建子 Agent 处理研究任务，观察上下文隔离</li>
+</ul>
+
+</div></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== SCENARIOS =====
+  var SCENARIOS = {
+    s01_basic: {
+      name: "S01: 基本循环",
+      description: "只有 Bash 工具，创建一个文件并验证",
+      tools: ["bash"],
+      steps: [
+        { type: "user", content: "创建 hello.py，内容为 print('Hello')" },
+        { type: "llm_thinking", content: "我需要用 bash 工具创建这个文件" },
+        { type: "tool_call", tool: "bash", input: { command: "cat > hello.py \x3c\x3c 'EOF'\nprint('Hello')\nEOF" } },
+        { type: "tool_result", output: "(file created)" },
+        { type: "llm_thinking", content: "文件已创建，让我验证一下" },
+        { type: "tool_call", tool: "bash", input: { command: "cat hello.py" } },
+        { type: "tool_result", output: "print('Hello')" },
+        { type: "llm_final", content: "已创建 hello.py，内容为 print('Hello')。" }
+      ]
+    },
+    s02_multi_tool: {
+      name: "S02: 多工具协作",
+      description: "使用搜索、读取和编辑工具重构代码",
+      tools: ["bash", "grep", "read", "edit"],
+      steps: [
+        { type: "user", content: "找到项目中所有 TODO 注释并修复" },
+        { type: "llm_thinking", content: "先搜索所有 TODO 注释" },
+        { type: "tool_call", tool: "grep", input: { pattern: "TODO", path: "src/" } },
+        { type: "tool_result", output: "src/auth.py:12: # TODO: add validation\nsrc/utils.py:45: # TODO: handle edge case" },
+        { type: "llm_thinking", content: "找到 2 个 TODO，先读取 auth.py" },
+        { type: "tool_call", tool: "read", input: { path: "src/auth.py", offset: 10, limit: 5 } },
+        { type: "tool_result", output: "10: def validate(token):\n11:     decoded = jwt.decode(token)\n12:     # TODO: add validation\n13:     return decoded\n14:" },
+        { type: "llm_thinking", content: "需要添加 token 验证逻辑" },
+        { type: "tool_call", tool: "edit", input: { path: "src/auth.py", old: "# TODO: add validation\n    return decoded", new: "if not decoded.get('exp'):\n        raise ValueError('Token expired')\n    return decoded" } },
+        { type: "tool_result", output: "Edit applied successfully" },
+        { type: "llm_final", content: "已修复 src/auth.py 中的 TODO：添加了 token 过期验证。" }
+      ]
+    },
+    s04_subagent: {
+      name: "S04: Subagent 委派",
+      description: "主 Agent 委派子任务给 Subagent，观察上下文隔离",
+      tools: ["bash", "read", "task"],
+      steps: [
+        { type: "user", content: "分析这个项目用了什么测试框架" },
+        { type: "llm_thinking", content: "这个研究任务适合委派给 Subagent，避免污染主上下文" },
+        { type: "tool_call", tool: "task", input: { prompt: "查看 package.json 和测试目录，确定测试框架" } },
+        { type: "subagent_start", content: "[Subagent 启动] messages = [] (空白上下文)" },
+        { type: "subagent_step", content: "[Subagent] 调用 read(package.json) → 发现 jest 依赖" },
+        { type: "subagent_step", content: "[Subagent] 调用 bash('ls tests/') → 发现 *.test.js 文件" },
+        { type: "subagent_end", content: "[Subagent 结束] 整个历史丢弃，只返回摘要" },
+        { type: "tool_result", output: "项目使用 Jest 测试框架，版本 29.7.0。测试文件在 tests/ 目录，共 12 个测试文件。" },
+        { type: "llm_final", content: "这个项目使用 Jest 29.7.0 作为测试框架。" }
+      ]
+    }
+  };
+
+  var ALL_TOOLS = {
+    bash:  { icon: "&#9000;", label: "Bash" },
+    grep:  { icon: "&#128269;", label: "Grep" },
+    read:  { icon: "&#128196;", label: "Read" },
+    edit:  { icon: "&#9998;", label: "Edit" },
+    task:  { icon: "&#128101;", label: "Task (Subagent)" }
+  };
+
+  // Flow node mapping
+  var FLOW_MAP = {
+    user:           ["fn-user"],
+    llm_thinking:   ["fn-llm"],
+    tool_call:      ["fn-dispatch"],
+    tool_result:    ["fn-execute", "fn-return"],
+    llm_final:      ["fn-llm"],
+    subagent_start: ["fn-dispatch"],
+    subagent_step:  ["fn-execute"],
+    subagent_end:   ["fn-return"]
+  };
+
+  // ===== STATE =====
+  var currentScenarioKey = "s01_basic";
+  var currentStep = -1;
+  var isPlaying = false;
+  var playTimer = null;
+  var speed = 1;
+  var messagesCount = 0;
+  var loopIteration = 0;
+  var toolsCalled = 0;
+  var tokensEst = 0;
+  var snapshotHistory = []; // for timeline jump-back
+
+  // ===== DOM REFS =====
+  var $select = document.getElementById("scenarioSelect");
+  var $desc = document.getElementById("scenarioDesc");
+  var $btnNext = document.getElementById("btnNext");
+  var $btnReset = document.getElementById("btnReset");
+  var $btnPlay = document.getElementById("btnPlay");
+  var $speedSlider = document.getElementById("speedSlider");
+  var $speedVal = document.getElementById("speedVal");
+  var $toolList = document.getElementById("toolList");
+  var $msgPanel = document.getElementById("messagesPanel");
+  var $msgBadge = document.getElementById("msgCountBadge");
+  var $timeline = document.getElementById("timelineBar");
+  var $stStopReason = document.getElementById("stStopReason");
+  var $stMsgLen = document.getElementById("stMsgLen");
+  var $stLoopIter = document.getElementById("stLoopIter");
+  var $stToolsCalled = document.getElementById("stToolsCalled");
+  var $stTokens = document.getElementById("stTokens");
+
+  // ===== HELPERS =====
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/\x3c/g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function getScenario() { return SCENARIOS[currentScenarioKey]; }
+
+  function bump(el) {
+    el.classList.remove("bump");
+    void el.offsetWidth;
+    el.classList.add("bump");
+  }
+
+  // ===== INIT SCENARIO SELECTOR =====
+  Object.keys(SCENARIOS).forEach(function(key) {
+    var opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = SCENARIOS[key].name;
+    $select.appendChild(opt);
+  });
+
+  $select.addEventListener("change", function() {
+    currentScenarioKey = this.value;
+    resetSimulator();
+  });
+
+  // ===== TOOL LIST RENDERING =====
+  function renderToolList() {
+    var sc = getScenario();
+    var html = "";
+    Object.keys(ALL_TOOLS).forEach(function(tkey) {
+      var t = ALL_TOOLS[tkey];
+      var avail = sc.tools.indexOf(tkey) >= 0;
+      html += '<div class="tool-item ' + (avail ? "available" : "unavailable") + '" id="tool-' + tkey + '">'
+            + '<span class="tool-dot">\x3c/span>'
+            + '<span>' + t.icon + ' ' + t.label + '\x3c/span>'
+            + '\x3c/div>';
+    });
+    $toolList.innerHTML = html;
+  }
+
+  // ===== FLOW DIAGRAM =====
+  function highlightFlow(stepType) {
+    // Clear all
+    document.querySelectorAll(".flow-node").forEach(function(n) { n.classList.remove("active"); });
+    document.querySelectorAll(".flow-arrow").forEach(function(a) { a.classList.remove("active"); });
+    var nodes = FLOW_MAP[stepType] || [];
+    nodes.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add("active");
+    });
+    // Activate relevant arrows
+    if (stepType === "user") {
+      document.getElementById("fa-1").classList.add("active");
+    } else if (stepType === "llm_thinking" || stepType === "llm_final") {
+      document.getElementById("fa-1").classList.add("active");
+      document.getElementById("fa-2").classList.add("active");
+    } else if (stepType === "tool_call" || stepType === "subagent_start") {
+      document.getElementById("fa-2").classList.add("active");
+      document.getElementById("fa-3").classList.add("active");
+    } else if (stepType === "tool_result" || stepType === "subagent_step") {
+      document.getElementById("fa-3").classList.add("active");
+      document.getElementById("fa-4").classList.add("active");
+    } else if (stepType === "subagent_end") {
+      document.getElementById("fa-4").classList.add("active");
+      document.getElementById("fa-loop").classList.add("active");
+    }
+  }
+
+  // ===== TIMELINE =====
+  function renderTimeline() {
+    var sc = getScenario();
+    var html = "";
+    sc.steps.forEach(function(step, idx) {
+      if (idx > 0) {
+        html += '<div class="tl-connector' + (idx <= currentStep ? " active" : "") + '">\x3c/div>';
+      }
+      var typeClass = "";
+      if (step.type === "user") typeClass = "type-user";
+      else if (step.type === "llm_thinking") typeClass = "type-thinking";
+      else if (step.type === "tool_call") typeClass = "type-tool-call";
+      else if (step.type === "tool_result") typeClass = "type-tool-result";
+      else if (step.type === "llm_final") typeClass = "type-final";
+      else typeClass = "type-subagent";
+
+      var state = "";
+      if (idx < currentStep) state = "past";
+      else if (idx === currentStep) state = "current";
+
+      var label = getStepLabel(step);
+      html += '<div class="tl-dot ' + state + " " + typeClass + '" data-idx="' + idx + '" title="' + esc(label) + '">'
+            + '<span class="tl-dot-label">' + esc(label) + '\x3c/span>'
+            + '\x3c/div>';
+    });
+    $timeline.innerHTML = html;
+
+    // Click handlers
+    $timeline.querySelectorAll(".tl-dot").forEach(function(dot) {
+      dot.addEventListener("click", function() {
+        var idx = parseInt(this.getAttribute("data-idx"), 10);
+        if (idx <= currentStep) {
+          jumpToStep(idx);
+        }
+      });
+    });
+  }
+
+  function getStepLabel(step) {
+    switch (step.type) {
+      case "user": return "用户消息";
+      case "llm_thinking": return "LLM 思考";
+      case "tool_call": return "调用 " + (step.tool || "");
+      case "tool_result": return "工具返回";
+      case "llm_final": return "最终回复";
+      case "subagent_start": return "子Agent启动";
+      case "subagent_step": return "子Agent步骤";
+      case "subagent_end": return "子Agent结束";
+      default: return step.type;
+    }
+  }
+
+  // ===== MESSAGE RENDERING =====
+  function buildMsgCard(step) {
+    var cls = "", icon = "", label = "", body = "";
+
+    switch (step.type) {
+      case "user":
+        cls = "msg-user"; icon = "&#129489;"; label = "USER";
+        body = '<div class="msg-content">' + esc(step.content) + '\x3c/div>';
+        break;
+      case "llm_thinking":
+        cls = "msg-thinking"; icon = "&#129504;"; label = "THINKING";
+        body = '<div class="msg-content" style="font-style:italic;">' + esc(step.content) + '\x3c/div>';
+        break;
+      case "tool_call":
+        cls = "msg-tool-call"; icon = "&#128295;"; label = "TOOL_CALL: " + esc(step.tool);
+        body = '<div class="msg-content"><pre>' + esc(JSON.stringify(step.input, null, 2)) + '\x3c/pre>\x3c/div>';
+        break;
+      case "tool_result":
+        cls = "msg-tool-result"; icon = "&#128230;"; label = "TOOL_RESULT";
+        body = '<div class="msg-content"><pre>' + esc(step.output) + '\x3c/pre>\x3c/div>';
+        break;
+      case "llm_final":
+        cls = "msg-assistant"; icon = "&#129302;"; label = "ASSISTANT (end_turn)";
+        body = '<div class="msg-content">' + esc(step.content) + '\x3c/div>';
+        break;
+      case "subagent_start":
+      case "subagent_step":
+      case "subagent_end":
+        cls = "msg-subagent"; icon = "&#129302;"; label = "SUBAGENT";
+        body = '<div class="msg-content" style="font-family:var(--font-mono);font-size:13px;">' + esc(step.content) + '\x3c/div>';
+        break;
+    }
+
+    return '<div class="msg-card ' + cls + '">'
+         + '<div class="msg-header"><span class="msg-role-icon">' + icon + '\x3c/span>' + label + '\x3c/div>'
+         + body
+         + '\x3c/div>';
+  }
+
+  // ===== STATE UPDATES =====
+  function updateState(step) {
+    // Determine stop_reason
+    var stopReason = "--";
+    var srClass = "";
+    if (step.type === "llm_final") {
+      stopReason = "end_turn";
+      srClass = "green";
+    } else if (step.type === "tool_call") {
+      stopReason = "tool_use";
+      srClass = "gold";
+    } else if (step.type === "llm_thinking") {
+      stopReason = "...推理中";
+      srClass = "";
+    } else if (step.type === "user") {
+      stopReason = "等待中";
+      srClass = "";
+    } else if (step.type.indexOf("subagent") === 0) {
+      stopReason = "subagent";
+      srClass = "blue";
+    } else if (step.type === "tool_result") {
+      stopReason = "tool_use";
+      srClass = "gold";
+    }
+    $stStopReason.textContent = stopReason;
+    $stStopReason.className = "state-value " + srClass;
+
+    // Messages count
+    if (step.type === "user" || step.type === "llm_thinking" || step.type === "tool_call" ||
+        step.type === "tool_result" || step.type === "llm_final") {
+      messagesCount++;
+    }
+    $stMsgLen.textContent = messagesCount;
+    bump($stMsgLen);
+    $msgBadge.textContent = messagesCount + " 条";
+
+    // Loop iteration
+    if (step.type === "tool_result" || step.type === "llm_final") {
+      loopIteration++;
+      $stLoopIter.textContent = loopIteration;
+      bump($stLoopIter);
+    }
+
+    // Tools called
+    if (step.type === "tool_call") {
+      toolsCalled++;
+      $stToolsCalled.textContent = toolsCalled;
+      bump($stToolsCalled);
+    }
+
+    // Tokens estimate
+    var tokenAdd = 0;
+    if (step.type === "user") tokenAdd = 50 + Math.floor(Math.random() * 30);
+    else if (step.type === "llm_thinking") tokenAdd = 100 + Math.floor(Math.random() * 80);
+    else if (step.type === "tool_call") tokenAdd = 60 + Math.floor(Math.random() * 40);
+    else if (step.type === "tool_result") tokenAdd = 80 + Math.floor(Math.random() * 120);
+    else if (step.type === "llm_final") tokenAdd = 120 + Math.floor(Math.random() * 60);
+    else tokenAdd = 30 + Math.floor(Math.random() * 20);
+    tokensEst += tokenAdd;
+    $stTokens.textContent = tokensEst.toLocaleString();
+    bump($stTokens);
+
+    // Tool highlight
+    document.querySelectorAll(".tool-item").forEach(function(el) { el.classList.remove("calling"); });
+    if (step.type === "tool_call" && step.tool) {
+      var toolEl = document.getElementById("tool-" + step.tool);
+      if (toolEl) toolEl.classList.add("calling");
+    }
+  }
+
+  // ===== STEP EXECUTION =====
+  function advanceStep() {
+    var sc = getScenario();
+    if (currentStep >= sc.steps.length - 1) {
+      stopAutoplay();
+      return;
+    }
+    currentStep++;
+    var step = sc.steps[currentStep];
+
+    // Save snapshot
+    snapshotHistory.push({
+      messagesCount: messagesCount,
+      loopIteration: loopIteration,
+      toolsCalled: toolsCalled,
+      tokensEst: tokensEst
+    });
+
+    // Add message
+    if (currentStep === 0) {
+      $msgPanel.innerHTML = "";
+    }
+    $msgPanel.innerHTML += buildMsgCard(step);
+    $msgPanel.scrollTop = $msgPanel.scrollHeight;
+
+    // Update state
+    updateState(step);
+
+    // Highlight flow
+    highlightFlow(step.type);
+
+    // Update timeline
+    renderTimeline();
+
+    // Check if done
+    if (currentStep >= sc.steps.length - 1) {
+      $btnNext.disabled = true;
+      stopAutoplay();
+      if (step.type === "llm_final") {
+        setTimeout(showCelebration, 400);
+      }
+    }
+  }
+
+  // ===== JUMP BACK =====
+  function jumpToStep(targetIdx) {
+    if (targetIdx < 0) return;
+    // Rebuild from scratch up to targetIdx
+    var sc = getScenario();
+    messagesCount = 0;
+    loopIteration = 0;
+    toolsCalled = 0;
+    tokensEst = 0;
+    currentStep = -1;
+    snapshotHistory = [];
+    $msgPanel.innerHTML = "";
+
+    document.querySelectorAll(".tool-item").forEach(function(el) { el.classList.remove("calling"); });
+
+    for (var i = 0; i <= targetIdx; i++) {
+      currentStep = i;
+      var step = sc.steps[i];
+      snapshotHistory.push({
+        messagesCount: messagesCount,
+        loopIteration: loopIteration,
+        toolsCalled: toolsCalled,
+        tokensEst: tokensEst
+      });
+      // Add message without animation
+      var card = buildMsgCard(step);
+      // Remove animation by inserting directly
+      $msgPanel.insertAdjacentHTML("beforeend", card.replace("msg-card", "msg-card").replace("msgSlideIn", "none"));
+      updateStateQuiet(step);
+    }
+    highlightFlow(sc.steps[targetIdx].type);
+    renderTimeline();
+    $msgPanel.scrollTop = $msgPanel.scrollHeight;
+    $btnNext.disabled = currentStep >= sc.steps.length - 1;
+  }
+
+  function updateStateQuiet(step) {
+    // Same as updateState but without animations
+    if (step.type === "user" || step.type === "llm_thinking" || step.type === "tool_call" ||
+        step.type === "tool_result" || step.type === "llm_final") {
+      messagesCount++;
+    }
+    if (step.type === "tool_result" || step.type === "llm_final") loopIteration++;
+    if (step.type === "tool_call") toolsCalled++;
+
+    var tokenAdd = 0;
+    if (step.type === "user") tokenAdd = 65;
+    else if (step.type === "llm_thinking") tokenAdd = 140;
+    else if (step.type === "tool_call") tokenAdd = 80;
+    else if (step.type === "tool_result") tokenAdd = 140;
+    else if (step.type === "llm_final") tokenAdd = 150;
+    else tokenAdd = 40;
+    tokensEst += tokenAdd;
+
+    // Update displays
+    var stopReason = "--", srClass = "";
+    if (step.type === "llm_final") { stopReason = "end_turn"; srClass = "green"; }
+    else if (step.type === "tool_call" || step.type === "tool_result") { stopReason = "tool_use"; srClass = "gold"; }
+    else if (step.type.indexOf("subagent") === 0) { stopReason = "subagent"; srClass = "blue"; }
+    $stStopReason.textContent = stopReason;
+    $stStopReason.className = "state-value " + srClass;
+    $stMsgLen.textContent = messagesCount;
+    $stLoopIter.textContent = loopIteration;
+    $stToolsCalled.textContent = toolsCalled;
+    $stTokens.textContent = tokensEst.toLocaleString();
+    $msgBadge.textContent = messagesCount + " 条";
+
+    document.querySelectorAll(".tool-item").forEach(function(el) { el.classList.remove("calling"); });
+    if (step.type === "tool_call" && step.tool) {
+      var toolEl = document.getElementById("tool-" + step.tool);
+      if (toolEl) toolEl.classList.add("calling");
+    }
+  }
+
+  // ===== CELEBRATION =====
+  function showCelebration() {
+    var overlay = document.createElement("div");
+    overlay.className = "celeb-overlay";
+    var box = document.createElement("div");
+    box.className = "celebration";
+    box.innerHTML = '<h2>循环完成!\x3c/h2>'
+      + '<p>stop_reason = end_turn &mdash; Agent 判断任务完成，退出循环\x3c/p>'
+      + '<p style="margin-top:12px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">'
+      + '共 ' + loopIteration + ' 次迭代 / ' + toolsCalled + ' 次工具调用 / ~' + tokensEst.toLocaleString() + ' tokens\x3c/p>';
+    document.body.appendChild(overlay);
+    document.body.appendChild(box);
+    function dismiss() {
+      overlay.remove();
+      box.remove();
+    }
+    overlay.addEventListener("click", dismiss);
+    box.addEventListener("click", dismiss);
+    setTimeout(dismiss, 4000);
+  }
+
+  // ===== AUTOPLAY =====
+  function startAutoplay() {
+    if (isPlaying) return;
+    isPlaying = true;
+    $btnPlay.textContent = "\u23f8 暂停";
+    runAutoplayTick();
+  }
+
+  function stopAutoplay() {
+    isPlaying = false;
+    $btnPlay.textContent = "\u25b6 自动播放";
+    if (playTimer) {
+      clearTimeout(playTimer);
+      playTimer = null;
+    }
+  }
+
+  function runAutoplayTick() {
+    if (!isPlaying) return;
+    var sc = getScenario();
+    if (currentStep >= sc.steps.length - 1) {
+      stopAutoplay();
+      return;
+    }
+    advanceStep();
+    var delay = 1500 / speed;
+    playTimer = setTimeout(runAutoplayTick, delay);
+  }
+
+  // ===== RESET =====
+  function resetSimulator() {
+    stopAutoplay();
+    currentStep = -1;
+    messagesCount = 0;
+    loopIteration = 0;
+    toolsCalled = 0;
+    tokensEst = 0;
+    snapshotHistory = [];
+
+    $msgPanel.innerHTML = '<div class="msg-empty">&#128300; 选择场景并点击「下一步」开始模拟\x3c/div>';
+    $stStopReason.textContent = "--";
+    $stStopReason.className = "state-value";
+    $stMsgLen.textContent = "0";
+    $stLoopIter.textContent = "0";
+    $stToolsCalled.textContent = "0";
+    $stTokens.textContent = "0";
+    $msgBadge.textContent = "0 条";
+    $btnNext.disabled = false;
+
+    document.querySelectorAll(".flow-node").forEach(function(n) { n.classList.remove("active"); });
+    document.querySelectorAll(".flow-arrow").forEach(function(a) { a.classList.remove("active"); });
+    document.querySelectorAll(".tool-item").forEach(function(el) { el.classList.remove("calling"); });
+
+    $desc.textContent = getScenario().description;
+    renderToolList();
+    renderTimeline();
+  }
+
+  // ===== EVENT LISTENERS =====
+  $btnNext.addEventListener("click", advanceStep);
+  $btnReset.addEventListener("click", resetSimulator);
+  $btnPlay.addEventListener("click", function() {
+    if (isPlaying) stopAutoplay();
+    else startAutoplay();
+  });
+
+  $speedSlider.addEventListener("input", function() {
+    speed = parseFloat(this.value);
+    $speedVal.textContent = speed + "x";
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", function(e) {
+    // Ignore if typing in an input
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      advanceStep();
+    } else if (e.key === "r" || e.key === "R") {
+      e.preventDefault();
+      resetSimulator();
+    } else if (e.key === " ") {
+      e.preventDefault();
+      if (isPlaying) stopAutoplay();
+      else startAutoplay();
+    }
+  });
+
+  // ===== INITIAL RENDER =====
+  resetSimulator();
+
+})();
+</script>
+<script src="../js/tooltips.js"></script>
+</body>
+</html>

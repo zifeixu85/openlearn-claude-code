@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buddy 互动实验室 — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+<link rel="stylesheet" href="../css/interactive.css">
+<style>
+/* ===== Buddy Interactive Styles ===== */
+.lab-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.lab-section::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan), var(--accent-gold));
+  opacity: 0.6;
+}
+.lab-section h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  color: var(--accent-gold);
+}
+.lab-section h2 .emoji { margin-right: 8px; }
+.lab-desc {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  margin-bottom: 20px;
+}
+
+/* Generator input */
+.gen-row {
+  display: flex; gap: 10px; align-items: center;
+  flex-wrap: wrap; margin-bottom: 20px;
+}
+.gen-input {
+  flex: 1; min-width: 200px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  outline: none;
+  transition: border var(--transition-fast);
+}
+.gen-input:focus { border-color: var(--accent-gold); }
+.gen-input::placeholder { color: var(--text-muted); }
+.btn {
+  padding: 10px 20px;
+  border: none; border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 600; font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.btn-gold {
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-amber));
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-ghost {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+}
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-pet {
+  background: linear-gradient(135deg, #ff6b9d, #c44dff);
+  color: #fff;
+  font-size: 1rem;
+  padding: 10px 24px;
+}
+.btn-pet:hover { filter: brightness(1.2); transform: translateY(-1px) scale(1.03); }
+
+/* Result card */
+.result-card {
+  display: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  animation: fadeSlideIn 0.4s ease-out;
+}
+.result-card.active { display: block; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.result-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media(max-width:700px) { .result-grid { grid-template-columns: 1fr; } }
+
+/* Sprite display */
+.sprite-box {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: pre;
+  color: var(--accent-cyan);
+  min-width: 180px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.sprite-box.shiny {
+  animation: shinyPulse 1.5s ease-in-out infinite;
+}
+@keyframes shinyPulse {
+  0%,100% { box-shadow: 0 0 8px rgba(232,167,65,0.3); }
+  50% { box-shadow: 0 0 24px rgba(232,167,65,0.7), 0 0 48px rgba(232,167,65,0.3); }
+}
+.hearts-line {
+  color: var(--accent-cyan);
+  height: 1.35em;
+  display: block;
+}
+
+/* Info panel */
+.info-panel { min-width: 0; }
+.buddy-name {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  margin-bottom: 2px;
+}
+.buddy-rarity {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.buddy-meta {
+  display: flex; flex-wrap: wrap; gap: 8px 16px;
+  margin-bottom: 18px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+.buddy-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.meta-label { color: var(--text-muted); }
+.shiny-badge {
+  background: linear-gradient(135deg, #e8a741, #ffed4a, #e8a741);
+  background-size: 200% 200%;
+  animation: shimmer 2s ease infinite;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Stat bars */
+.stat-bars { width: 100%; }
+.stat-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px; font-size: 0.82rem;
+}
+.stat-label {
+  width: 80px; text-align: right;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.stat-track {
+  flex: 1; height: 18px;
+  background: var(--bg-deep);
+  border-radius: 9px;
+  overflow: hidden;
+  position: relative;
+}
+.stat-fill {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+  width: 0;
+  position: relative;
+}
+.stat-fill.gold { background: linear-gradient(90deg, var(--accent-gold), #ffed4a); }
+.stat-fill.red { background: linear-gradient(90deg, var(--accent-red), #ff9898); }
+.stat-fill.default { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+.stat-val {
+  width: 32px; text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.stat-tag {
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  width: 36px; text-align: center;
+}
+.stat-tag.peak { background: var(--accent-gold-dim); color: var(--accent-gold); }
+.stat-tag.dump { background: var(--accent-red-dim); color: var(--accent-red); }
+.stat-tag.none { width: 36px; }
+.floor-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent-gold);
+  opacity: 0.5;
+  z-index: 2;
+}
+
+/* Rarity Wheel */
+.wheel-container {
+  display: flex; align-items: center; justify-content: center;
+  gap: 32px; flex-wrap: wrap;
+}
+.wheel-canvas {
+  width: 260px; height: 260px;
+  cursor: pointer;
+}
+.wheel-legend {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.88rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.legend-item.active {
+  background: var(--bg-hover);
+  transform: scale(1.05);
+}
+.legend-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-pct {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+/* Species Gallery */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.gallery-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: default;
+}
+.gallery-card:hover {
+  border-color: var(--accent-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(232,167,65,0.15);
+}
+.gallery-sprite {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: pre;
+  color: var(--accent-cyan);
+  height: 78px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.gallery-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  color: var(--text-primary);
+}
+.gallery-face {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Hash Visualizer */
+.hash-steps {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.hash-step {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  animation: fadeSlideIn 0.3s ease-out both;
+}
+.hash-step-num {
+  display: inline-block;
+  background: var(--accent-gold-dim);
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  width: 22px; height: 22px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+.hash-step-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+.hash-val {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--accent-cyan);
+  background: var(--bg-deep);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  word-break: break-all;
+}
+.hash-val .hl { color: var(--accent-gold); font-weight: 600; }
+.hash-arrow {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  margin: -4px 0;
+}
+</style>
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u4e92\u52a8\u4f53\u9a8c",items:[
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"LIVE"},
+    {h:"pages/buddy-interactive.html",t:"Buddy \u5b9e\u9a8c\u5ba4",b:"PLAY"},
+    {h:"pages/challenges.html",t:"\u77e5\u8bc6\u95ef\u5173",b:"20\u5173"}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'\x3c/div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+      sh+='\x3c/div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){sb.classList.remove('hidden');document.body.classList.remove('sidebar-off');if(btn)btn.classList.remove('collapsed')}
+  else{sb.classList.add('hidden');document.body.classList.add('sidebar-off');if(btn)btn.classList.add('collapsed')}
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){items.push({level:2,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="H3"){items.push({level:3,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();if(txt.length<3)return;
+      var did=el.id;if(!did){did="d-"+items.length;el.id=did}
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2\x3c/div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='\x3c/div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+        th+='<div class="toc-children">';inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+      }
+    });
+    if(inGroup)th+='\x3c/div>';
+    rt.innerHTML=th;document.body.appendChild(rt);
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        tocAll.forEach(function(l){l.classList.remove("active")});
+        var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+        if(m){m.classList.add("active");var p=m.closest(".toc-children");if(p)p.classList.add("expanded");
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});}
+      }});
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(){var nx=a.nextElementSibling;if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded")});
+    });
+    var fg=rt.querySelector(".toc-children");if(fg)fg.classList.add("expanded");
+    // FAB for mobile
+    var fab=document.createElement("button");fab.className="toc-fab";fab.textContent="\u2630";fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){drt=rt.cloneNode(true);drt.id="drawerToc";drt.className="right-toc as-drawer";
+        var cl=document.createElement("div");cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed";cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);document.body.appendChild(drt);
+        var dov=document.createElement("div");dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");drt.classList.toggle("open");dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);updBtn(saved);
+window.toggleTheme=function(){var c=document.documentElement.getAttribute("data-theme")||"dark";var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("theme",n);updBtn(n)};
+function updBtn(t){var b=document.querySelector(".theme-toggle");if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark"}
+
+// ---- Search ----
+window.openSearch=function(){if(document.getElementById("searchModal"))return;var m=document.createElement("div");m.id="searchModal";m.className="search-modal";m.innerHTML='<div class="search-backdrop" onclick="closeSearch()">\x3c/div><div class="search-box"><input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus /><div id="searchResults" class="search-results">\x3c/div><div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c\x3c/div>\x3c/div>';document.body.appendChild(m);setTimeout(function(){m.classList.add("open")},10);var inp=document.getElementById("searchInput");inp.addEventListener("input",doSearch);inp.addEventListener("keydown",function(e){if(e.key==="Escape")closeSearch();if(e.key==="Enter"){var f=document.querySelector(".search-result-item");if(f)f.click()}if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();var its=document.querySelectorAll(".search-result-item");var cur=document.querySelector(".search-result-item.focused");var idx=-1;its.forEach(function(it,i){if(it===cur)idx=i});if(e.key==="ArrowDown")idx=Math.min(idx+1,its.length-1);else idx=Math.max(idx-1,0);its.forEach(function(it){it.classList.remove("focused")});if(its[idx]){its[idx].classList.add("focused");its[idx].scrollIntoView({block:"nearest"})}}})};
+window.closeSearch=function(){var m=document.getElementById("searchModal");if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}};
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}});
+var PAGES=[
+  {u:B+"index.html",t:"首页 "},
+  {u:B+"pages/arch-core.html",t:"启动与核心循环 启动流程 · QueryEngine · 上下文装配"},
+  {u:B+"pages/arch-runtime.html",t:"运行时机制 工具编排 · 状态管理 · 压缩 · 持久化"},
+  {u:B+"pages/tools-detail.html",t:"内置工具详解 42 个工具的用户价值与机制"},
+  {u:B+"pages/commands-detail.html",t:"斜杠命令手册 67 个命令完整功能说明"},
+  {u:B+"pages/context.html",t:"上下文体系 CLAUDE.md · Rules · Memory · Skills · MCP"},
+  {u:B+"pages/permissions.html",t:"权限系统 6 种模式 · 决策流程 · Hooks"},
+  {u:B+"pages/kairos-overview.html",t:"KAIROS 概述与激活 定位 · Feature Flags · 激活链路"},
+  {u:B+"pages/kairos-proactive.html",t:"KAIROS 主动模式 心跳 · Brief · 专属工具 · Dream"},
+  {u:B+"pages/kairos-coordinator.html",t:"Coordinator 编排 Worker 系统 · 远程架构 · vs OpenClaw"},
+  {u:B+"pages/buddy.html",t:"Buddy 电子宠物 18 物种 · 5 稀有度 · 确定性生成"},
+  {u:B+"pages/voice-vim.html",t:"语音 · Vim · 快捷键 三种输入模式"},
+  {u:B+"pages/remote-bridge.html",t:"远程 · IDE Bridge SSH 隧道 · JWT 双向通信"},
+  {u:B+"pages/plugin-skills.html",t:"插件 · 技能 Plugin 生命周期 · Skills 加载"},
+  {u:B+"pages/memory-system.html",t:"记忆系统 5 种记忆机制全景"},
+  {u:B+"pages/analytics-policy.html",t:"分析 · 合规 Feature Flags · 遥测 · MDM"},
+  {u:B+"pages/ink-ui.html",t:"终端 UI Ink 框架 · 390+ 组件"},
+  {u:B+"pages/internals.html",t:"内部机制 迁移 · 入口点 · Schemas · 费用"},
+  {u:B+"pages/learn-s01.html",t:"S01: Agent Loop 一个循环 + Bash = 一个 Agent"},
+  {u:B+"pages/learn-s02.html",t:"S02: Tool Use dispatch map 让模型长出手臂"},
+  {u:B+"pages/learn-s03.html",t:"S03: TodoWrite 让 Agent 学会做计划"},
+  {u:B+"pages/learn-s04.html",t:"S04: Subagent 用上下文隔离保持主线清晰"},
+  {u:B+"pages/learn-s05.html",t:"S05: Skill Loading 按需加载的知识库"},
+  {u:B+"pages/learn-s06.html",t:"S06: Context Compact 三层压缩保持 Agent 不失忆"},
+  {u:B+"pages/learn-s07.html",t:"S07: Task System 持久化任务图"},
+  {u:B+"pages/learn-s08.html",t:"S08: Background Tasks 后台执行不阻塞"},
+  {u:B+"pages/learn-s09.html",t:"S09: Agent Teams 持久化团队 + JSONL 邮箱"},
+  {u:B+"pages/learn-s10.html",t:"S10: Team Protocols request-response 协议"},
+  {u:B+"pages/learn-s11.html",t:"S11: Autonomous Agents 自组织与自动认领"},
+  {u:B+"pages/learn-s12.html",t:"S12: Worktree Isolation Git Worktree 目录隔离"},
+  {u:B+"pages/glossary.html",t:"术语表 37 个核心术语完整解释"},
+  {u:B+"pages/simulator.html",t:"Agent 循环模拟器 交互"},
+  {u:B+"pages/buddy-interactive.html",t:"Buddy 实验室 精灵 生成器"},
+  {u:B+"pages/hidden-behaviors.html",t:"隐藏行为 反蒸馏 卧底 挛败感检测 anti-distillation undercover frustration"},
+  {u:B+"pages/modular-prompts.html",t:"模块化系统提示 prompt 110 A/B"},
+  {u:B+"pages/agentic-patterns.html",t:"Agent 设计模式 ULTRAPLAN feature flags 安全绕过"}
+];
+function doSearch(){var q=document.getElementById("searchInput").value.trim().toLowerCase();var res=document.getElementById("searchResults");if(!q){res.innerHTML="";return}var hits=[];var pw2=document.querySelector(".page-wrap");if(pw2){pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){var txt=el.textContent||"";if(txt.toLowerCase().indexOf(q)>-1){var id=el.id||(el.closest&&el.closest("[id]")?el.closest("[id]").id:"");hits.push({text:txt.substring(0,120),id:id,local:true})}})}PAGES.forEach(function(pg){if(pg.t.toLowerCase().indexOf(q)>-1)hits.push({text:pg.t,url:pg.u,local:false})});var seen=new Set();var html="";var count=0;hits.forEach(function(h){if(count>=12)return;var key=h.text.substring(0,50);if(seen.has(key))return;seen.add(key);count++;if(h.local&&h.id){html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><span class="sr-type">\u672c\u9875\x3c/span>'+esc2(h.text)+'\x3c/div>'}else if(!h.local){html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'"><span class="sr-type">\u9875\u9762\x3c/span>'+esc2(h.text)+'\x3c/div>'}});if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c\x3c/div>';res.innerHTML=html}
+function esc2(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag interactive">INTERACTIVE</div>
+<h1>Buddy 互动实验室</h1>
+<p class="subtitle">用真实的 FNV-1a + Mulberry32 算法生成你的专属 Buddy，可视化每一步计算过程。</p>
+
+<!-- ========== 1. BUDDY GENERATOR ========== -->
+<div class="lab-section" id="generator-section">
+<h2 id="generator"><span class="emoji">&#x1F3B0;</span> 精灵生成器</h2>
+<p class="lab-desc">输入任意用户 ID，使用与 Claude Code 源码完全一致的算法生成你的 Buddy。同一个 ID 永远生成同一个精灵。</p>
+
+<div class="gen-row">
+  <input type="text" id="userId" class="gen-input" placeholder="输入你的用户 ID，或直接点击随机生成..." value="">
+  <button class="btn btn-gold" onclick="randomAndGenerate()">&#x1F3B2; 随机生成</button>
+  <button class="btn btn-ghost" onclick="generateBuddy()" id="genBtn" style="display:none">&#x2728; 用当前 ID 生成</button>
+  <button class="btn btn-pet" id="petBtn" onclick="petBuddy()" style="display:none">&#x1F49C; 撸一下</button>
+</div>
+
+<div class="result-card" id="resultCard">
+  <div class="result-grid">
+    <div>
+      <div class="sprite-box" id="spriteBox"></div>
+    </div>
+    <div class="info-panel">
+      <div class="buddy-name" id="buddyName"></div>
+      <div class="buddy-rarity" id="buddyRarity"></div>
+      <div class="buddy-meta" id="buddyMeta"></div>
+      <div class="stat-bars" id="statBars"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== 2. RARITY WHEEL ========== -->
+<div class="lab-section">
+<h2 id="rarity-wheel"><span class="emoji">&#x1F3A1;</span> 稀有度轮盘</h2>
+<p class="lab-desc">5 个稀有度等级的概率分布。生成 Buddy 时轮盘会自动旋转并停在你的结果上。</p>
+<div class="wheel-container">
+  <canvas class="wheel-canvas" id="rarityWheel" width="520" height="520"></canvas>
+  <div class="wheel-legend" id="wheelLegend"></div>
+</div>
+</div>
+
+<!-- ========== 3. STATS VISUALIZER ========== -->
+<div class="lab-section">
+<h2 id="stats-viz"><span class="emoji">&#x1F4CA;</span> 属性可视化</h2>
+<p class="lab-desc">5 项属性由 PRNG 确定性生成。最高属性标记为峰值（金色），最低属性标记为垃圾（红色）。</p>
+<div id="statsViz">
+  <p style="color:var(--text-muted);font-style:italic;">&#x2191; 先在上方生成一个 Buddy 来查看属性</p>
+</div>
+</div>
+
+<!-- ========== 4. SPECIES GALLERY ========== -->
+<div class="lab-section">
+<h2 id="species-gallery"><span class="emoji">&#x1F3AD;</span> 18 物种画廊</h2>
+<p class="lab-desc">所有 18 个物种的 ASCII 精灵预览，每个都有 3 帧动画循环。</p>
+<div class="gallery-grid" id="galleryGrid"></div>
+</div>
+
+<!-- ========== 5. PET ANIMATION ========== -->
+<div class="lab-section">
+<h2 id="pet-anim"><span class="emoji">&#x1F495;</span> 撸一下</h2>
+<p class="lab-desc">点击按钮触发爱心动画——从源码里还原的 5 帧心跳序列。</p>
+<div style="text-align:center">
+  <div class="sprite-box" id="petPreview" style="display:inline-block;min-width:200px;margin-bottom:12px;"></div>
+  <br>
+  <button class="btn btn-pet" onclick="petPreviewBuddy()">&#x1F49C; 撸一下</button>
+</div>
+</div>
+
+<!-- ========== 6. HASH VISUALIZER ========== -->
+<div class="lab-section">
+<h2 id="hash-viz"><span class="emoji">&#x1F9EE;</span> 算法可视化</h2>
+<p class="lab-desc">逐步展示从用户 ID 到 Buddy 的完整生成过程：哈希、种子、随机数、属性映射。</p>
+<div class="hash-steps" id="hashSteps">
+  <p style="color:var(--text-muted);font-style:italic;">&#x2191; 先在上方生成一个 Buddy 来查看算法步骤</p>
+</div>
+</div>
+
+</div></div>
+
+<!-- ========== MAIN SCRIPT ========== -->
+<script>
+(function() {
+'use strict';
+
+// ===== CORE ALGORITHMS (from Claude Code source) =====
+const SALT = 'friend-2026-401';
+
+function fnv1a(str) {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+const SPECIES = ['duck','goose','blob','cat','dragon','octopus','owl','penguin','turtle','snail','ghost','axolotl','capybara','cactus','robot','rabbit','mushroom','chonk'];
+const SPECIES_EMOJI = {
+  duck:'\u{1F986}', goose:'\u{1FAB6}', blob:'\u{1F7E3}', cat:'\u{1F431}', dragon:'\u{1F409}',
+  octopus:'\u{1F419}', owl:'\u{1F989}', penguin:'\u{1F427}', turtle:'\u{1F422}', snail:'\u{1F40C}',
+  ghost:'\u{1F47B}', axolotl:'\u{1F98E}', capybara:'\u{1F9AB}', cactus:'\u{1F335}', robot:'\u{1F916}',
+  rabbit:'\u{1F430}', mushroom:'\u{1F344}', chonk:'\u{1F43B}'
+};
+const SPECIES_CN = {
+  duck:'鸭子', goose:'鹅', blob:'果冻', cat:'猫', dragon:'龙',
+  octopus:'章鱼', owl:'猫头鹰', penguin:'企鹅', turtle:'乌龟', snail:'蜗牛',
+  ghost:'幽灵', axolotl:'美西螈', capybara:'水豚', cactus:'仙人掌', robot:'机器人',
+  rabbit:'兔子', mushroom:'蘑菇', chonk:'胖墩'
+};
+const EYES = ['\u00B7','\u2726','\u00D7','\u25C9','@','\u00B0'];
+const HATS = ['none','crown','tophat','propeller','halo','wizard','beanie','tinyduck'];
+const HATS_CN = {
+  none:'无', crown:'\u{1F451} 皇冠', tophat:'\u{1F3A9} 礼帽', propeller:'\u{1FA81} 螺旋桨',
+  halo:'\u{1F607} 光环', wizard:'\u{1F9D9} 巫师帽', beanie:'\u{1F9E2} 毛线帽', tinyduck:'\u{1F425} 小鸭帽'
+};
+const HAT_ART = {
+  none:       '            ',
+  crown:      '    \u{1F451}      ',
+  tophat:     '   _===_    ',
+  propeller:  '    ~@~     ',
+  halo:       '    ooo     ',
+  wizard:     '   /\\^/\\   ',
+  beanie:     '   ~===~    ',
+  tinyduck:   '    \u{1F425}      '
+};
+const RARITY_WEIGHTS = [
+  {name:'Common',cn:'普通',w:60,floor:5,stars:'\u2605',color:'#888'},
+  {name:'Uncommon',cn:'稀有',w:25,floor:15,stars:'\u2605\u2605',color:'#4ec9b0'},
+  {name:'Rare',cn:'珍贵',w:10,floor:25,stars:'\u2605\u2605\u2605',color:'#5b8def'},
+  {name:'Epic',cn:'史诗',w:4,floor:35,stars:'\u2605\u2605\u2605\u2605',color:'#89ddff'},
+  {name:'Legendary',cn:'传说',w:1,floor:50,stars:'\u2605\u2605\u2605\u2605\u2605',color:'#e8a741'}
+];
+const STATS = ['DEBUGGING','PATIENCE','CHAOS','WISDOM','SNARK'];
+const STATS_CN = { DEBUGGING:'调试', PATIENCE:'耐心', CHAOS:'混乱', WISDOM:'智慧', SNARK:'毒舌' };
+
+// ===== ASCII SPRITE BODIES =====
+const BODIES = {
+  duck: [
+    "            \n    __      \n  <({E})___  \n   (  ._>   \n    `--\u00B4    ",
+    "            \n    __      \n  <({E})___  \n   ( ._>    \n    `-\u00B4     ",
+    "            \n    __      \n  <({E})___  \n   (  ._>   \n   ~`--\u00B4~   "
+  ],
+  goose: [
+    "            \n     __     \n   /({E})>   \n  ( ___/    \n   \\|  \\|   ",
+    "            \n     __     \n   /({E})>   \n  (___/     \n   |\\  |\\   ",
+    "            \n    ___     \n  /({E})>    \n  ( ___/    \n   \\|  \\|   "
+  ],
+  blob: [
+    "            \n   .---.    \n  / {E} {E} \\   \n  | \\_/ |   \n   '---'    ",
+    "            \n   .--.     \n  / {E} {E}\\   \n  | \\_/ |   \n   '--'     ",
+    "            \n   .----.   \n  / {E}  {E} \\  \n  |  \\_/ |  \n   '----'   "
+  ],
+  cat: [
+    "            \n   /\\_/\\   \n  ( {E} {E} )  \n   > ^ <   \n  /|   |\\  ",
+    "            \n   /\\_/\\   \n  ( {E} {E} )  \n   > ^ <   \n   |/ \\|   ",
+    "            \n   /\\_/\\   \n  ( {E} {E} )  \n   > ~ <   \n  /|   |\\  "
+  ],
+  dragon: [
+    "    /\\/}   \n  /{E}  /    \n <___/     \n   \\  \\    \n    \\__>   ",
+    "    /\\/}   \n  /{E}  /    \n <___/     \n   /  /    \n  /__>     ",
+    "   ~/\\/}   \n  /{E}  /    \n <___/  *  \n   \\  \\    \n    \\__>   "
+  ],
+  octopus: [
+    "            \n   .---.    \n  /{E}   {E}\\   \n  |  u  |   \n  ~\\~|~/~   ",
+    "            \n   .---.    \n  /{E}   {E}\\   \n  |  u  |   \n  ~/~|~\\~   ",
+    "            \n   .---.    \n  /{E}   {E}\\   \n  | \\u/ |   \n  ~\\~|~/~   "
+  ],
+  owl: [
+    "            \n   {{{{{   \n  ( {E}w{E} )  \n  /)   (\\  \n  \" \" \" \"  ",
+    "            \n   {{{{{   \n  ( {E}w{E} )  \n  /)   (\\  \n   \" \" \"   ",
+    "            \n   {{{{{   \n  ( {E}W{E} )  \n  /)   (\\  \n  \" \" \" \"  "
+  ],
+  penguin: [
+    "            \n    (^)     \n   ({E}{E})    \n   /|  |\\   \n    d  b    ",
+    "            \n    (^)     \n   ({E}{E})    \n  \\ |  | /  \n    d  b    ",
+    "            \n    (^)     \n   ({E}{E})    \n   /|  |\\   \n    b  d    "
+  ],
+  turtle: [
+    "    _____   \n  / {E}   \\>  \n |  ___  |  \n  \\_|_|_/   \n   d   d    ",
+    "    _____   \n  / {E}   \\>  \n | .___. |  \n  \\_|_|_/   \n    d   d   ",
+    "    _____   \n  / {E}   \\>  \n |  ___  |  \n  \\_|_|_/   \n  d   d     "
+  ],
+  snail: [
+    "    ____    \n   / {E}{E} \\   \n  | (__)|   \n  \\______/  \n ~~~~~~~~~~  ",
+    "    ____    \n   / {E}{E} \\   \n  | (__)|   \n  \\______/  \n~~~~~~~~~~ ",
+    "    ____    \n   / {E}{E} \\   \n  | (__)|   \n   \\______/ \n ~~~~~~~~~~  "
+  ],
+  ghost: [
+    "     .  .   \n   .-\"\"\"-.  \n  / {E}   {E} \\ \n  |       | \n  '~~ ~~~ ~'",
+    "    .  .    \n   .-\"\"\"-.  \n  / {E}   {E} \\ \n  |   o   | \n  '~ ~~~ ~~'",
+    "     . .    \n   .-\"\"\"-.  \n  / {E}   {E} \\ \n  |       | \n  '~~~ ~~ ~'"
+  ],
+  axolotl: [
+    "   \\\\|//   \n  ( {E} {E} )  \n   \\====/   \n  /|    |\\  \n  ~ ~~~~~ ~ ",
+    "   \\\\|//   \n  ( {E} {E} )  \n   \\====/   \n  /|    |\\  \n ~ ~~~~~ ~  ",
+    "   -\\\\|//- \n  ( {E} {E} )  \n   \\====/   \n  /|    |\\  \n  ~ ~~~~~ ~ "
+  ],
+  capybara: [
+    "            \n   /\\_~~    \n  ({E}    )   \n  (  uu  )  \n  d_/  \\_b  ",
+    "            \n   /\\_~~    \n  ({E}    )   \n  ( uu   )  \n  d_/ \\_b   ",
+    "            \n   /\\_~~    \n  ({E}    )   \n  (  uu  )  \n d_/  \\_b   "
+  ],
+  cactus: [
+    "     |      \n   __|__    \n  /{E}   {E}\\   \n -|     |- \n  |_____|   ",
+    "     |      \n   __|__    \n  /{E}   {E}\\   \n -|     |- \n  |_____|   ",
+    "    \\|/     \n   __|__    \n  /{E}   {E}\\   \n -|     |- \n  |_____|   "
+  ],
+  robot: [
+    "   [===]   \n   |{E}.{E}|   \n   |___|   \n   /| |\\   \n  (_| |_)  ",
+    "   [===]   \n   |{E}.{E}|   \n   |___|   \n   /| |\\   \n  (_| |_)  ",
+    "   [===]   \n   |{E}:{E}|   \n   |~__|   \n   /| |\\   \n  (_| |_)  "
+  ],
+  rabbit: [
+    "   () ()   \n   (>{E}<)   \n   ( Y )   \n   /|  |\\  \n   \"  \"    ",
+    "   () ()   \n   (>{E}<)   \n   ( Y )   \n  \\|  |/   \n   \"  \"    ",
+    "   ()\\ ()  \n   (>{E}<)   \n   ( Y )   \n   /|  |\\  \n   \"  \"    "
+  ],
+  mushroom: [
+    "   .oOo.   \n  /o O o\\  \n  |{E}   {E}|  \n  | \\_/ |  \n   '---'   ",
+    "   .oOo.   \n  /o O o\\  \n  |{E}   {E}|  \n  | \\_/ |  \n   '---'   ",
+    "  ~.oOo.~  \n  /o O o\\  \n  |{E}   {E}|  \n  |  u  |  \n   '---'   "
+  ],
+  chonk: [
+    "            \n  .------.  \n /( {E}  {E} )\\ \n(  >    <  )\n '--------' ",
+    "            \n  .------.  \n /( {E}  {E} )\\ \n(  > uu <  )\n '--------' ",
+    "            \n .--------. \n/( {E}   {E}  )\\\n(  >    <  )\n '--------' "
+  ]
+};
+
+const PET_HEARTS = [
+  "   \u2665    \u2665   ",
+  "  \u2665  \u2665   \u2665  ",
+  " \u2665   \u2665  \u2665   ",
+  "\u2665  \u2665      \u2665 ",
+  "\u00B7    \u00B7   \u00B7  "
+];
+
+const IDLE_SEQ = [0,0,0,0,1,0,0,0,-1,0,0,2,0,0,0];
+
+// ===== GENERATION LOGIC =====
+function pickRarity(rng) {
+  const roll = rng() * 100;
+  let acc = 0;
+  for (const r of RARITY_WEIGHTS) {
+    acc += r.w;
+    if (roll < acc) return r;
+  }
+  return RARITY_WEIGHTS[0];
+}
+
+function generateCompanion(userId) {
+  const input = userId + SALT;
+  const hash = fnv1a(input);
+  const rng = mulberry32(hash);
+
+  const species = SPECIES[Math.floor(rng() * SPECIES.length)];
+  const rarity = pickRarity(rng);
+  const eye = EYES[Math.floor(rng() * EYES.length)];
+  const hat = rarity.name === 'Common' ? 'none' : HATS[Math.floor(rng() * HATS.length)];
+  const shiny = rng() < 0.01;
+
+  const stats = {};
+  const statVals = [];
+  for (const s of STATS) {
+    const v = Math.floor(rng() * (100 - rarity.floor) + rarity.floor);
+    stats[s] = v;
+    statVals.push(v);
+  }
+
+  const peak = STATS[statVals.indexOf(Math.max(...statVals))];
+  const dump = STATS[statVals.indexOf(Math.min(...statVals))];
+
+  return { species, rarity, eye, hat, shiny, stats, peak, dump, hash, input };
+}
+
+// ===== SPRITE RENDERING =====
+function renderSprite(species, eye, frameIdx, blink) {
+  const frames = BODIES[species];
+  const idx = Math.max(0, Math.min(frameIdx, frames.length - 1));
+  let frame = frames[idx];
+  const displayEye = blink ? '-' : eye;
+  return frame.replace(/\{E\}/g, displayEye);
+}
+
+function renderWithHat(species, eye, hat, frameIdx, blink) {
+  const sprite = renderSprite(species, eye, frameIdx, blink);
+  const lines = sprite.split('\n');
+  if (hat !== 'none' && HAT_ART[hat]) {
+    lines[0] = HAT_ART[hat];
+  }
+  return lines.join('\n');
+}
+
+// ===== CURRENT STATE =====
+let currentBuddy = null;
+let animTimer = null;
+let idleIdx = 0;
+let petAnimating = false;
+let petFrame = 0;
+
+// ===== RARITY WHEEL (canvas) =====
+const wheelColors = ['#888','#4ec9b0','#5b8def','#89ddff','#e8a741'];
+let wheelAngle = 0;
+let wheelTargetAngle = 0;
+let wheelSpinning = false;
+let wheelAnimId = null;
+let activeRarityIdx = -1;
+
+function initWheel() {
+  drawWheel(0, -1);
+  const legend = document.getElementById('wheelLegend');
+  legend.innerHTML = RARITY_WEIGHTS.map((r, i) =>
+    `<div class="legend-item" id="legend-${i}">
+      <div class="legend-dot" style="background:${r.color}">\x3c/div>
+      <span>${r.cn} (${r.name})\x3c/span>
+      <span class="legend-pct">${r.w}%\x3c/span>
+    \x3c/div>`
+  ).join('');
+}
+
+function drawWheel(rotation, highlightIdx) {
+  const canvas = document.getElementById('rarityWheel');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = Math.min(cx, cy) - 30;
+  ctx.clearRect(0, 0, w, h);
+
+  const total = RARITY_WEIGHTS.reduce((a, b) => a + b.w, 0);
+  let startAngle = rotation - Math.PI / 2;
+
+  RARITY_WEIGHTS.forEach((rw, i) => {
+    const sliceAngle = (rw.w / total) * 2 * Math.PI;
+    const endAngle = startAngle + sliceAngle;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, i === highlightIdx ? r + 8 : r, startAngle, endAngle);
+    ctx.closePath();
+
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0, adjustAlpha(rw.color, 0.7));
+    grad.addColorStop(1, rw.color);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    const midAngle = startAngle + sliceAngle / 2;
+    const labelR = r * 0.65;
+    const lx = cx + Math.cos(midAngle) * labelR;
+    const ly = cy + Math.sin(midAngle) * labelR;
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(midAngle + Math.PI / 2);
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 13px "DM Sans"';
+    ctx.textAlign = 'center';
+    ctx.fillText(rw.cn, 0, 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.font = '11px "JetBrains Mono"';
+    ctx.fillText(rw.w + '%', 0, 16);
+    ctx.restore();
+
+    startAngle = endAngle;
+  });
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-surface').trim() || '#16161f';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Pointer
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r - 16);
+  ctx.lineTo(cx - 10, cy - r - 30);
+  ctx.lineTo(cx + 10, cy - r - 30);
+  ctx.closePath();
+  ctx.fillStyle = '#e8a741';
+  ctx.fill();
+}
+
+function adjustAlpha(hex, alpha) {
+  var h = hex.replace('#','');
+  if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var r = parseInt(h.slice(0,2),16);
+  var g = parseInt(h.slice(2,4),16);
+  var b = parseInt(h.slice(4,6),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+
+function spinWheel(rarityIdx) {
+  if (wheelAnimId) cancelAnimationFrame(wheelAnimId);
+  const total = RARITY_WEIGHTS.reduce((a, b) => a + b.w, 0);
+  // Calculate target angle to land on the rarity slice
+  let angle = 0;
+  for (let i = 0; i < rarityIdx; i++) {
+    angle += (RARITY_WEIGHTS[i].w / total) * 2 * Math.PI;
+  }
+  angle += (RARITY_WEIGHTS[rarityIdx].w / total) * Math.PI; // middle of slice
+
+  // Add multiple full rotations for drama
+  wheelTargetAngle = wheelAngle + Math.PI * 8 + (2 * Math.PI - angle);
+  wheelSpinning = true;
+  activeRarityIdx = rarityIdx;
+
+  const startAngle = wheelAngle;
+  const startTime = performance.now();
+  const duration = 2500;
+
+  function animate(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    // Ease out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
+    wheelAngle = startAngle + (wheelTargetAngle - startAngle) * ease;
+
+    drawWheel(wheelAngle, t > 0.8 ? rarityIdx : -1);
+
+    // Update legend highlight
+    document.querySelectorAll('.legend-item').forEach((el, i) => {
+      el.classList.toggle('active', t > 0.8 && i === rarityIdx);
+    });
+
+    if (t < 1) {
+      wheelAnimId = requestAnimationFrame(animate);
+    } else {
+      wheelSpinning = false;
+    }
+  }
+  wheelAnimId = requestAnimationFrame(animate);
+}
+
+// ===== GALLERY =====
+function initGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = SPECIES.map(sp => {
+    const sprite = renderSprite(sp, '\u2726', 0, false);
+    return `<div class="gallery-card" data-species="${sp}">
+      <div class="gallery-sprite" id="gal-${sp}">${escHtml(sprite)}\x3c/div>
+      <div class="gallery-name">${SPECIES_EMOJI[sp] || ''} ${SPECIES_CN[sp]}\x3c/div>
+      <div class="gallery-face">${sp}\x3c/div>
+    \x3c/div>`;
+  }).join('');
+
+  // Animate gallery sprites
+  let galFrame = 0;
+  setInterval(() => {
+    const seqIdx = galFrame % IDLE_SEQ.length;
+    const frameVal = IDLE_SEQ[seqIdx];
+    const blink = frameVal === -1;
+    const fIdx = blink ? 0 : frameVal;
+    SPECIES.forEach(sp => {
+      const el = document.getElementById('gal-' + sp);
+      if (el) {
+        el.textContent = renderSprite(sp, '\u2726', fIdx, blink);
+      }
+    });
+    galFrame++;
+  }, 500);
+}
+
+// ===== PET PREVIEW =====
+function initPetPreview() {
+  const box = document.getElementById('petPreview');
+  const sp = renderWithHat('cat', '\u2726', 'none', 0, false);
+  box.innerHTML = '<span class="hearts-line">&nbsp;\x3c/span>\n' + escHtml(sp);
+  // animate idle
+  let f = 0;
+  setInterval(() => {
+    if (petAnimating) return;
+    const seqIdx = f % IDLE_SEQ.length;
+    const fv = IDLE_SEQ[seqIdx];
+    const blink = fv === -1;
+    const fi = blink ? 0 : fv;
+    const sprite = renderWithHat('cat', '\u2726', 'none', fi, blink);
+    box.innerHTML = '<span class="hearts-line">&nbsp;\x3c/span>\n' + escHtml(sprite);
+    f++;
+  }, 500);
+}
+
+let petPreviewAnimating = false;
+window.petPreviewBuddy = function() {
+  if (petPreviewAnimating) return;
+  petPreviewAnimating = true;
+  const box = document.getElementById('petPreview');
+  let frame = 0;
+  const iv = setInterval(() => {
+    if (frame >= PET_HEARTS.length) {
+      clearInterval(iv);
+      petPreviewAnimating = false;
+      const sprite = renderWithHat('cat', '\u2726', 'none', 0, false);
+      box.innerHTML = '<span class="hearts-line">&nbsp;\x3c/span>\n' + escHtml(sprite);
+      return;
+    }
+    const sprite = renderWithHat('cat', '\u2726', 'none', 0, false);
+    box.innerHTML = '<span class="hearts-line" style="color:var(--accent-cyan)">' + escHtml(PET_HEARTS[frame]) + '\x3c/span>\n' + escHtml(sprite);
+    frame++;
+  }, 500);
+};
+
+// ===== MAIN GENERATE =====
+window.generateBuddy = function() {
+  const userId = document.getElementById('userId').value.trim();
+  if (!userId) {
+    document.getElementById('userId').focus();
+    return;
+  }
+
+  const buddy = generateCompanion(userId);
+  currentBuddy = buddy;
+
+  // Show result card
+  const card = document.getElementById('resultCard');
+  card.classList.add('active');
+  document.getElementById('petBtn').style.display = '';
+
+  // Name
+  const nameEl = document.getElementById('buddyName');
+  nameEl.textContent = (SPECIES_EMOJI[buddy.species] || '') + ' ' + SPECIES_CN[buddy.species];
+
+  // Rarity
+  const rarEl = document.getElementById('buddyRarity');
+  rarEl.innerHTML = `<span style="color:${buddy.rarity.color}">${buddy.rarity.stars} ${buddy.rarity.cn} (${buddy.rarity.name})\x3c/span>`;
+
+  // Meta
+  const metaEl = document.getElementById('buddyMeta');
+  metaEl.innerHTML =
+    `<span><span class="meta-label">物种\x3c/span> ${buddy.species}\x3c/span>` +
+    `<span><span class="meta-label">眼睛\x3c/span> <code>${buddy.eye}\x3c/code>\x3c/span>` +
+    `<span><span class="meta-label">帽子\x3c/span> ${HATS_CN[buddy.hat] || buddy.hat}\x3c/span>` +
+    (buddy.shiny ? `<span class="shiny-badge">\u2728 SHINY \u2728\x3c/span>` : '');
+
+  // Sprite animation
+  const spriteBox = document.getElementById('spriteBox');
+  spriteBox.classList.toggle('shiny', buddy.shiny);
+  if (animTimer) clearInterval(animTimer);
+  idleIdx = 0;
+  petAnimating = false;
+
+  function updateSprite() {
+    if (petAnimating) return;
+    const seqIdx = idleIdx % IDLE_SEQ.length;
+    const frameVal = IDLE_SEQ[seqIdx];
+    const blink = frameVal === -1;
+    const fIdx = blink ? 0 : frameVal;
+    const sprite = renderWithHat(buddy.species, buddy.eye, buddy.hat, fIdx, blink);
+    spriteBox.innerHTML = '<span class="hearts-line">&nbsp;\x3c/span>\n' + escHtml(sprite);
+    idleIdx++;
+  }
+  updateSprite();
+  animTimer = setInterval(updateSprite, 500);
+
+  // Stats
+  renderStats(buddy);
+
+  // Spin wheel
+  const rarIdx = RARITY_WEIGHTS.findIndex(r => r.name === buddy.rarity.name);
+  spinWheel(rarIdx);
+
+  // Hash visualization
+  renderHashViz(userId, buddy);
+
+  // Stats viz section
+  renderStatsVizSection(buddy);
+};
+
+// ===== PET =====
+window.petBuddy = function() {
+  if (!currentBuddy || petAnimating) return;
+  petAnimating = true;
+  petFrame = 0;
+  const spriteBox = document.getElementById('spriteBox');
+
+  const iv = setInterval(() => {
+    if (petFrame >= PET_HEARTS.length) {
+      clearInterval(iv);
+      petAnimating = false;
+      return;
+    }
+    const sprite = renderWithHat(currentBuddy.species, currentBuddy.eye, currentBuddy.hat, 0, false);
+    spriteBox.innerHTML = '<span class="hearts-line" style="color:var(--accent-cyan)">' + escHtml(PET_HEARTS[petFrame]) + '\x3c/span>\n' + escHtml(sprite);
+    petFrame++;
+  }, 500);
+};
+
+// ===== RANDOM ID =====
+window.randomId = function() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = 'user_';
+  for (let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('userId').value = id;
+};
+
+// ===== RENDER STATS =====
+function renderStats(buddy) {
+  const container = document.getElementById('statBars');
+  container.innerHTML = STATS.map(s => {
+    const val = buddy.stats[s];
+    const isPeak = s === buddy.peak;
+    const isDump = s === buddy.dump;
+    const cls = isPeak ? 'gold' : isDump ? 'red' : 'default';
+    const tag = isPeak ? '<span class="stat-tag peak">峰值\x3c/span>' :
+                isDump ? '<span class="stat-tag dump">垃圾\x3c/span>' :
+                '<span class="stat-tag none">\x3c/span>';
+    return `<div class="stat-row">
+      <span class="stat-label">${STATS_CN[s]}\x3c/span>
+      <div class="stat-track">
+        <div class="stat-fill ${cls}" id="sf-${s}" style="width:0%">\x3c/div>
+        <div class="floor-line" style="left:${buddy.rarity.floor}%">\x3c/div>
+      \x3c/div>
+      <span class="stat-val" style="color:${isPeak ? 'var(--accent-gold)' : isDump ? 'var(--accent-red)' : 'var(--text-primary)'}">${val}\x3c/span>
+      ${tag}
+    \x3c/div>`;
+  }).join('');
+
+  // Animate fills
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      STATS.forEach(s => {
+        const el = document.getElementById('sf-' + s);
+        if (el) el.style.width = buddy.stats[s] + '%';
+      });
+    }, 50);
+  });
+}
+
+// ===== STATS VIZ SECTION =====
+function renderStatsVizSection(buddy) {
+  const container = document.getElementById('statsViz');
+  container.innerHTML = `
+    <p style="color:var(--text-secondary);margin-bottom:12px;">
+      稀有度 <strong style="color:${buddy.rarity.color}">${buddy.rarity.cn}\x3c/strong> 的属性下限为 <code>${buddy.rarity.floor}\x3c/code>，
+      即所有属性值 &ge; ${buddy.rarity.floor}。
+    \x3c/p>
+  ` + STATS.map(s => {
+    const val = buddy.stats[s];
+    const isPeak = s === buddy.peak;
+    const isDump = s === buddy.dump;
+    const cls = isPeak ? 'gold' : isDump ? 'red' : 'default';
+    const tag = isPeak ? '<span class="stat-tag peak">峰值\x3c/span>' :
+                isDump ? '<span class="stat-tag dump">垃圾\x3c/span>' :
+                '<span class="stat-tag none">\x3c/span>';
+    return `<div class="stat-row">
+      <span class="stat-label">${STATS_CN[s]}\x3c/span>
+      <div class="stat-track">
+        <div class="stat-fill ${cls}" id="sv-${s}" style="width:0%">\x3c/div>
+        <div class="floor-line" style="left:${buddy.rarity.floor}%">\x3c/div>
+      \x3c/div>
+      <span class="stat-val" style="color:${isPeak ? 'var(--accent-gold)' : isDump ? 'var(--accent-red)' : 'var(--text-primary)'}">${val}\x3c/span>
+      ${tag}
+    \x3c/div>`;
+  }).join('');
+
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      STATS.forEach(s => {
+        const el = document.getElementById('sv-' + s);
+        if (el) el.style.width = buddy.stats[s] + '%';
+      });
+    }, 50);
+  });
+}
+
+// ===== HASH VISUALIZATION =====
+function renderHashViz(userId, buddy) {
+  const container = document.getElementById('hashSteps');
+  const input = buddy.input;
+  const hash = buddy.hash;
+
+  // Replay RNG to capture values
+  const rng = mulberry32(hash);
+  const rngVals = [];
+  for (let i = 0; i < 12; i++) rngVals.push(rng());
+
+  const speciesIdx = Math.floor(rngVals[0] * SPECIES.length);
+  // rarity roll
+  const rarityRoll = rngVals[1] * 100;
+  let rarAcc = 0; let rarIdx = 0;
+  for (let i = 0; i < RARITY_WEIGHTS.length; i++) {
+    rarAcc += RARITY_WEIGHTS[i].w;
+    if (rarityRoll < rarAcc) { rarIdx = i; break; }
+  }
+  const eyeIdx = Math.floor(rngVals[2] * EYES.length);
+  const hatIdx = Math.floor(rngVals[3] * HATS.length);
+
+  container.innerHTML = `
+    <div class="hash-step" style="animation-delay:0s">
+      <div class="hash-step-title"><span class="hash-step-num">1\x3c/span>输入拼接\x3c/div>
+      <div class="hash-val">
+        userId = "<span class="hl">${escHtml(userId)}\x3c/span>"<br>
+        SALT = "<span class="hl">${SALT}\x3c/span>"<br>
+        input = userId + SALT = "<span class="hl">${escHtml(input)}\x3c/span>"
+      \x3c/div>
+    \x3c/div>
+
+    <div class="hash-arrow">\u2193\x3c/div>
+
+    <div class="hash-step" style="animation-delay:0.1s">
+      <div class="hash-step-title"><span class="hash-step-num">2\x3c/span>FNV-1a 哈希\x3c/div>
+      <div class="hash-val">
+        初始值: <span class="hl">2166136261\x3c/span> (0x811c9dc5)<br>
+        逐字符 XOR + 乘 <span class="hl">16777619\x3c/span> (0x01000193)<br>
+        最终哈希: <span class="hl">${hash}\x3c/span> (0x${hash.toString(16).padStart(8,'0')})
+      \x3c/div>
+    \x3c/div>
+
+    <div class="hash-arrow">\u2193\x3c/div>
+
+    <div class="hash-step" style="animation-delay:0.2s">
+      <div class="hash-step-title"><span class="hash-step-num">3\x3c/span>Mulberry32 种子\x3c/div>
+      <div class="hash-val">
+        seed = fnv1a(input) = <span class="hl">${hash}\x3c/span><br>
+        PRNG = mulberry32(${hash})
+      \x3c/div>
+    \x3c/div>
+
+    <div class="hash-arrow">\u2193\x3c/div>
+
+    <div class="hash-step" style="animation-delay:0.3s">
+      <div class="hash-step-title"><span class="hash-step-num">4\x3c/span>随机数序列\x3c/div>
+      <div class="hash-val">
+        rng[0] = ${rngVals[0].toFixed(8)} &rarr; 物种: floor(${rngVals[0].toFixed(4)} \u00D7 ${SPECIES.length}) = <span class="hl">${speciesIdx}\x3c/span> (${buddy.species})<br>
+        rng[1] = ${rngVals[1].toFixed(8)} &rarr; 稀有度: ${rarityRoll.toFixed(2)}% &rarr; <span class="hl" style="color:${buddy.rarity.color}">${buddy.rarity.cn}\x3c/span><br>
+        rng[2] = ${rngVals[2].toFixed(8)} &rarr; 眼睛: floor(${rngVals[2].toFixed(4)} \u00D7 ${EYES.length}) = <span class="hl">${eyeIdx}\x3c/span> (${buddy.eye})<br>
+        rng[3] = ${rngVals[3].toFixed(8)} &rarr; 帽子: ${buddy.rarity.name === 'Common' ? 'Common \u2192 none' : `floor(${rngVals[3].toFixed(4)} \u00D7 ${HATS.length}) = <span class="hl">${hatIdx}\x3c/span> (${buddy.hat})`}<br>
+        rng[4] = ${rngVals[4].toFixed(8)} &rarr; 闪光: ${(rngVals[4] < 0.01) ? '<span class="hl" style="color:var(--accent-gold)">\u2728 YES!\x3c/span>' : 'No (' + (rngVals[4] * 100).toFixed(2) + '% > 1%)'}
+      \x3c/div>
+    \x3c/div>
+
+    <div class="hash-arrow">\u2193\x3c/div>
+
+    <div class="hash-step" style="animation-delay:0.4s">
+      <div class="hash-step-title"><span class="hash-step-num">5\x3c/span>属性生成\x3c/div>
+      <div class="hash-val">
+        floor = ${buddy.rarity.floor} (${buddy.rarity.cn}级下限)<br>
+        ${STATS.map((s, i) => {
+          const val = buddy.stats[s];
+          const isPeak = s === buddy.peak;
+          const isDump = s === buddy.dump;
+          const tag = isPeak ? ' \u{1F947} 峰值' : isDump ? ' \u{1F4A9} 垃圾' : '';
+          const color = isPeak ? 'var(--accent-gold)' : isDump ? 'var(--accent-red)' : '';
+          return `rng[${5+i}] = ${rngVals[5+i].toFixed(8)} &rarr; ${STATS_CN[s]}: floor(${rngVals[5+i].toFixed(4)} \u00D7 ${100 - buddy.rarity.floor} + ${buddy.rarity.floor}) = <span class="hl"${color ? ` style="color:${color}"` : ''}>${val}${tag}\x3c/span>`;
+        }).join('<br>')}
+      \x3c/div>
+    \x3c/div>
+  `;
+}
+
+// ===== UTILS =====
+function escHtml(s) {
+  return s.replace(/&/g, '\x26amp;').replace(/\x3c/g, '\x26lt;').replace(/>/g, '\x26gt;');
+}
+
+// ===== INIT =====
+// Combined random + generate
+window.randomAndGenerate = function() {
+  var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  var id = 'user-';
+  for (var i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('userId').value = id;
+  generateBuddy();
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  initWheel();
+  initGallery();
+  initPetPreview();
+
+  // Show "用当前 ID 生成" button when user types
+  var input = document.getElementById('userId');
+  var genBtn = document.getElementById('genBtn');
+  input.addEventListener('input', function() {
+    genBtn.style.display = input.value.trim() ? 'inline-flex' : 'none';
+  });
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') generateBuddy();
+  });
+
+  // Auto-generate one on load for immediate visual
+  randomAndGenerate();
+});
+
+})();
+</script>
+
+<script src="../js/tooltips.js"></script>
+</body>
+</html>

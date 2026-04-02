@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S06: Context Compact — Claude Code 学习手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<script>
+(function(){
+if(window.__laid)return;window.__laid=true;
+var B='../';
+var NAV=[
+  {g:"\u5b98\u65b9\u6e90\u7801\u5206\u6790",items:[
+    {sub:"\u6838\u5fc3\u67b6\u6784",items:[
+      {h:"pages/arch-core.html",t:"\u542f\u52a8\u4e0e\u6838\u5fc3\u5faa\u73af"},
+      {h:"pages/arch-runtime.html",t:"\u8fd0\u884c\u65f6\u673a\u5236"}
+    ]},
+    {sub:"\u529f\u80fd\u7cfb\u7edf",items:[
+      {h:"pages/tools-detail.html",t:"\u5185\u7f6e\u5de5\u5177\u8be6\u89e3",b:"42"},
+      {h:"pages/commands-detail.html",t:"\u659c\u6760\u547d\u4ee4\u624b\u518c",b:"67"},
+      {h:"pages/context.html",t:"\u4e0a\u4e0b\u6587\u4f53\u7cfb"},
+      {h:"pages/permissions.html",t:"\u6743\u9650\u7cfb\u7edf"}
+    ]},
+    {sub:"KAIROS \u4e13\u9898",items:[
+      {h:"pages/kairos-overview.html",t:"\u6982\u8ff0\u4e0e\u6fc0\u6d3b"},
+      {h:"pages/kairos-proactive.html",t:"\u4e3b\u52a8\u6a21\u5f0f"},
+      {h:"pages/kairos-coordinator.html",t:"Coordinator \u7f16\u6392"}
+    ]},
+    {sub:"\u5b50\u7cfb\u7edf",items:[
+      {h:"pages/buddy.html",t:"Buddy \u7535\u5b50\u5ba0\u7269"},
+      {h:"pages/voice-vim.html",t:"\u8bed\u97f3 \u00b7 Vim \u00b7 \u5feb\u6377\u952e"},
+      {h:"pages/remote-bridge.html",t:"\u8fdc\u7a0b \u00b7 IDE Bridge"},
+      {h:"pages/plugin-skills.html",t:"\u63d2\u4ef6 \u00b7 \u6280\u80fd"},
+      {h:"pages/memory-system.html",t:"\u8bb0\u5fc6\u7cfb\u7edf"},
+      {h:"pages/analytics-policy.html",t:"\u5206\u6790 \u00b7 \u5408\u89c4"},
+      {h:"pages/ink-ui.html",t:"\u7ec8\u7aef UI"},
+      {h:"pages/internals.html",t:"\u5185\u90e8\u673a\u5236"},
+      {h:"pages/hidden-behaviors.html",t:"\u9690\u85cf\u884c\u4e3a",b:"\u2605"},
+      {h:"pages/modular-prompts.html",t:"\u6a21\u5757\u5316\u63d0\u793a"},
+      {h:"pages/agentic-patterns.html",t:"Agent \u8bbe\u8ba1\u6a21\u5f0f",b:"10"}
+    ]}
+  ]},
+  {g:"\u9006\u5411\u5b66\u4e60\u8bfe\u7a0b",items:[
+    {sub:"\u57fa\u7840\u8bfe\u7a0b S01-S06",items:[
+      {h:"pages/learn-s01.html",t:"S01 Agent Loop",b:"CORE"},
+      {h:"pages/learn-s02.html",t:"S02 Tool Use"},
+      {h:"pages/learn-s03.html",t:"S03 TodoWrite"},
+      {h:"pages/learn-s04.html",t:"S04 Subagent"},
+      {h:"pages/learn-s05.html",t:"S05 Skill Loading"},
+      {h:"pages/learn-s06.html",t:"S06 Context Compact"}
+    ]},
+    {sub:"\u8fdb\u9636\u8bfe\u7a0b S07-S12",items:[
+      {h:"pages/learn-s07.html",t:"S07 Task System"},
+      {h:"pages/learn-s08.html",t:"S08 Background"},
+      {h:"pages/learn-s09.html",t:"S09 Agent Teams"},
+      {h:"pages/learn-s10.html",t:"S10 Protocols"},
+      {h:"pages/learn-s11.html",t:"S11 Autonomous"},
+      {h:"pages/learn-s12.html",t:"S12 Worktree"}
+    ]}
+  ]},
+  {g:"\u4e92\u52a8\u4f53\u9a8c",items:[
+    {h:"pages/simulator.html",t:"Agent \u5faa\u73af\u6a21\u62df\u5668",b:"LIVE"},
+    {h:"pages/buddy-interactive.html",t:"Buddy \u5b9e\u9a8c\u5ba4",b:"PLAY"},
+    {h:"pages/challenges.html",t:"\u77e5\u8bc6\u95ef\u5173",b:"20\u5173"}
+  ]},
+  {g:"\u53c2\u8003",items:[
+    {h:"pages/glossary.html",t:"\u672f\u8bed\u8868",b:"37"}
+  ]}
+];
+var loc=location.pathname;
+
+// ---- Header ----
+var hb=document.createElement("div");
+hb.className="header-bar";
+hb.innerHTML='<button class="sidebar-btn" onclick="_toggleSidebar()" aria-label="Toggle sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 8 17 12 14 16"/>\x3c/svg>\x3c/button>'
+  +'<button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1=3 y1=6 x2=21 y2=6/><line x1=3 y1=12 x2=21 y2=12/><line x1=3 y1=18 x2=21 y2=18/>\x3c/svg>\x3c/button>'
+  +'<a href="'+B+'index.html" class="header-logo"><span class="dim">$\x3c/span> Claude Code \u5b66\u4e60\u624b\u518c\x3c/a>'
+  +'<div class="header-spacer">\x3c/div>'
+  +'<button class="search-btn" onclick="openSearch()" title="Search (Ctrl+K)">\ud83d\udd0d Search\x3c/button>'
+  +'<button class="theme-toggle" onclick="toggleTheme()">\u2600 Light\x3c/button>';
+document.body.prepend(hb);
+
+// ---- Sidebar ----
+var sb=document.createElement("nav");
+sb.className="sidebar";sb.id="sidebar";
+var sh='<div class="sidebar-group"><a href="'+B+'index.html" class="sidebar-link'
+  +(loc.endsWith("index.html")||loc.endsWith("/")?" active":"")
+  +'">\ud83c\udfe0 \u9996\u9875\x3c/a>\x3c/div><div class="sidebar-divider">\x3c/div>';
+NAV.forEach(function(g){
+  sh+='<div class="sidebar-label">'+g.g+'\x3c/div><div class="sidebar-group">';
+  g.items.forEach(function(it){
+    if(it.sub){
+      var subActive=false;
+      it.items.forEach(function(c){if(loc.indexOf(c.h)>-1)subActive=true});
+      var openCls=subActive?' open':'';
+      sh+='<div class="sidebar-sub-label'+openCls+'" onclick="this.classList.toggle(\'open\');this.nextElementSibling.classList.toggle(\'open\')">'+it.sub+'\x3c/div>';
+      sh+='<div class="sidebar-sub-group'+(subActive?' open':'')+'">';
+      it.items.forEach(function(c){
+        var hr=B+c.h;
+        var ac=loc.indexOf(c.h)>-1?' active':'';
+        sh+='<a href="'+hr+'" class="sidebar-link sidebar-link-l3'+ac+'">'+c.t
+          +(c.b?'<span class="badge">'+c.b+'\x3c/span>':'')+'\x3c/a>';
+      });
+      sh+='\x3c/div>';
+    } else {
+      var hr=B+it.h;
+      var ac=loc.indexOf(it.h)>-1?' active':'';
+      sh+='<a href="'+hr+'" class="sidebar-link'+ac+'">'+it.t
+        +(it.b?'<span class="badge">'+it.b+'\x3c/span>':'')+'\x3c/a>';
+    }
+  });
+  sh+='\x3c/div>';
+});
+sb.innerHTML=sh;
+document.body.appendChild(sb);
+
+// Sidebar toggle
+var sbHidden=localStorage.getItem('sidebarHidden')==='1';
+if(sbHidden)setSidebar(false);
+window._toggleSidebar=function(){
+  sbHidden=!sbHidden;
+  localStorage.setItem('sidebarHidden',sbHidden?'1':'0');
+  setSidebar(!sbHidden);
+};
+function setSidebar(show){
+  var btn=document.querySelector('.sidebar-btn');
+  if(show){sb.classList.remove('hidden');document.body.classList.remove('sidebar-off');if(btn)btn.classList.remove('collapsed')}
+  else{sb.classList.add('hidden');document.body.classList.add('sidebar-off');if(btn)btn.classList.add('collapsed')}
+}
+
+var ov=document.createElement("div");
+ov.className="sidebar-overlay";ov.id="sidebarOverlay";
+ov.onclick=function(){toggleSidebar()};
+document.body.appendChild(ov);
+window.toggleSidebar=function(){
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+};
+
+// ---- Right TOC ---- (deferred to DOMContentLoaded)
+document.addEventListener('DOMContentLoaded',function(){var pw=document.querySelector(".page-wrap");
+if(pw){
+  var items=[];
+  pw.querySelectorAll("h2[id],h3[id],details").forEach(function(el){
+    if(el.tagName==="H2"){items.push({level:2,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="H3"){items.push({level:3,id:el.id,text:el.textContent.trim(),el:el})}
+    else if(el.tagName==="DETAILS"){
+      var sum=el.querySelector("summary");if(!sum)return;
+      var txt=sum.textContent.replace(/\s+/g," ").trim();if(txt.length<3)return;
+      var did=el.id;if(!did){did="d-"+items.length;el.id=did}
+      if(txt.length>50)txt=txt.substring(0,48)+"\u2026";
+      items.push({level:3,id:did,text:txt,el:el});
+    }
+  });
+  if(items.length>2){
+    var rt=document.createElement("nav");rt.className="right-toc";rt.id="rightToc";
+    var th='<div class="right-toc-title">\u672c\u9875\u5927\u7eb2\x3c/div>';
+    var inGroup=false;
+    items.forEach(function(it){
+      if(it.level===2){
+        if(inGroup)th+='\x3c/div>';
+        th+='<a href="#'+it.id+'" class="toc-h2" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+        th+='<div class="toc-children">';inGroup=true;
+      } else {
+        if(!inGroup){th+='<div class="toc-children expanded">';inGroup=true;}
+        th+='<a href="#'+it.id+'" class="toc-h3" data-id="'+it.id+'">'+esc(it.text)+'\x3c/a>';
+      }
+    });
+    if(inGroup)th+='\x3c/div>';
+    rt.innerHTML=th;document.body.appendChild(rt);
+    var tocAll=rt.querySelectorAll("a[data-id]");
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){
+        tocAll.forEach(function(l){l.classList.remove("active")});
+        var m=rt.querySelector('a[data-id="'+e.target.id+'"]');
+        if(m){m.classList.add("active");var p=m.closest(".toc-children");if(p)p.classList.add("expanded");
+            m.scrollIntoView({block:"nearest",behavior:"smooth"});}
+      }});
+    },{rootMargin:"-60px 0px -70% 0px"});
+    items.forEach(function(it){obs.observe(it.el)});
+    rt.querySelectorAll(".toc-h2").forEach(function(a){
+      a.addEventListener("click",function(){var nx=a.nextElementSibling;if(nx&&nx.classList.contains("toc-children"))nx.classList.toggle("expanded")});
+    });
+    var fg=rt.querySelector(".toc-children");if(fg)fg.classList.add("expanded");
+    // FAB for mobile
+    var fab=document.createElement("button");fab.className="toc-fab";fab.textContent="\u2630";fab.title="\u672c\u9875\u5927\u7eb2";
+    fab.onclick=function(){
+      var drt=document.getElementById("drawerToc");
+      if(!drt){drt=rt.cloneNode(true);drt.id="drawerToc";drt.className="right-toc as-drawer";
+        var cl=document.createElement("div");cl.style.cssText="text-align:center;padding:8px;cursor:pointer;color:var(--text-muted);font-size:12px;";
+        cl.textContent="\u2715 \u5173\u95ed";cl.onclick=function(){drt.classList.remove("open");dov.style.display="none"};
+        drt.prepend(cl);document.body.appendChild(drt);
+        var dov=document.createElement("div");dov.className="toc-drawer-overlay";dov.id="tocDrawerOverlay";
+        dov.onclick=function(){drt.classList.remove("open");dov.style.display="none"};document.body.appendChild(dov);
+      }
+      var dov2=document.getElementById("tocDrawerOverlay");drt.classList.toggle("open");dov2.style.display=drt.classList.contains("open")?"block":"none";
+    };
+    document.body.appendChild(fab);
+  }
+  function esc(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+}
+}); // end DOMContentLoaded
+
+// ---- Theme ----
+var saved=localStorage.getItem("theme")||"dark";
+document.documentElement.setAttribute("data-theme",saved);updBtn(saved);
+window.toggleTheme=function(){var c=document.documentElement.getAttribute("data-theme")||"dark";var n=c==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);localStorage.setItem("theme",n);updBtn(n)};
+function updBtn(t){var b=document.querySelector(".theme-toggle");if(b)b.textContent=t==="dark"?"\u2600 Light":"\ud83c\udf19 Dark"}
+
+// ---- Search ----
+window.openSearch=function(){if(document.getElementById("searchModal"))return;var m=document.createElement("div");m.id="searchModal";m.className="search-modal";m.innerHTML='<div class="search-backdrop" onclick="closeSearch()">\x3c/div><div class="search-box"><input id="searchInput" type="text" placeholder="\u641c\u7d22\u5173\u952e\u8bcd..." autofocus /><div id="searchResults" class="search-results">\x3c/div><div class="search-hint">ESC \u5173\u95ed \u00b7 Enter \u8df3\u8f6c\x3c/div>\x3c/div>';document.body.appendChild(m);setTimeout(function(){m.classList.add("open")},10);var inp=document.getElementById("searchInput");inp.addEventListener("input",doSearch);inp.addEventListener("keydown",function(e){if(e.key==="Escape")closeSearch();if(e.key==="Enter"){var f=document.querySelector(".search-result-item");if(f)f.click()}if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();var its=document.querySelectorAll(".search-result-item");var cur=document.querySelector(".search-result-item.focused");var idx=-1;its.forEach(function(it,i){if(it===cur)idx=i});if(e.key==="ArrowDown")idx=Math.min(idx+1,its.length-1);else idx=Math.max(idx-1,0);its.forEach(function(it){it.classList.remove("focused")});if(its[idx]){its[idx].classList.add("focused");its[idx].scrollIntoView({block:"nearest"})}}})};
+window.closeSearch=function(){var m=document.getElementById("searchModal");if(m){m.classList.remove("open");setTimeout(function(){m.remove()},200)}};
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();openSearch()}});
+var PAGES=[
+  {u:B+"index.html",t:"首页 "},
+  {u:B+"pages/arch-core.html",t:"启动与核心循环 启动流程 · QueryEngine · 上下文装配"},
+  {u:B+"pages/arch-runtime.html",t:"运行时机制 工具编排 · 状态管理 · 压缩 · 持久化"},
+  {u:B+"pages/tools-detail.html",t:"内置工具详解 42 个工具的用户价值与机制"},
+  {u:B+"pages/commands-detail.html",t:"斜杠命令手册 67 个命令完整功能说明"},
+  {u:B+"pages/context.html",t:"上下文体系 CLAUDE.md · Rules · Memory · Skills · MCP"},
+  {u:B+"pages/permissions.html",t:"权限系统 6 种模式 · 决策流程 · Hooks"},
+  {u:B+"pages/kairos-overview.html",t:"KAIROS 概述与激活 定位 · Feature Flags · 激活链路"},
+  {u:B+"pages/kairos-proactive.html",t:"KAIROS 主动模式 心跳 · Brief · 专属工具 · Dream"},
+  {u:B+"pages/kairos-coordinator.html",t:"Coordinator 编排 Worker 系统 · 远程架构 · vs OpenClaw"},
+  {u:B+"pages/buddy.html",t:"Buddy 电子宠物 18 物种 · 5 稀有度 · 确定性生成"},
+  {u:B+"pages/voice-vim.html",t:"语音 · Vim · 快捷键 三种输入模式"},
+  {u:B+"pages/remote-bridge.html",t:"远程 · IDE Bridge SSH 隧道 · JWT 双向通信"},
+  {u:B+"pages/plugin-skills.html",t:"插件 · 技能 Plugin 生命周期 · Skills 加载"},
+  {u:B+"pages/memory-system.html",t:"记忆系统 5 种记忆机制全景"},
+  {u:B+"pages/analytics-policy.html",t:"分析 · 合规 Feature Flags · 遥测 · MDM"},
+  {u:B+"pages/ink-ui.html",t:"终端 UI Ink 框架 · 390+ 组件"},
+  {u:B+"pages/internals.html",t:"内部机制 迁移 · 入口点 · Schemas · 费用"},
+  {u:B+"pages/learn-s01.html",t:"S01: Agent Loop 一个循环 + Bash = 一个 Agent"},
+  {u:B+"pages/learn-s02.html",t:"S02: Tool Use dispatch map 让模型长出手臂"},
+  {u:B+"pages/learn-s03.html",t:"S03: TodoWrite 让 Agent 学会做计划"},
+  {u:B+"pages/learn-s04.html",t:"S04: Subagent 用上下文隔离保持主线清晰"},
+  {u:B+"pages/learn-s05.html",t:"S05: Skill Loading 按需加载的知识库"},
+  {u:B+"pages/learn-s06.html",t:"S06: Context Compact 三层压缩保持 Agent 不失忆"},
+  {u:B+"pages/learn-s07.html",t:"S07: Task System 持久化任务图"},
+  {u:B+"pages/learn-s08.html",t:"S08: Background Tasks 后台执行不阻塞"},
+  {u:B+"pages/learn-s09.html",t:"S09: Agent Teams 持久化团队 + JSONL 邮箱"},
+  {u:B+"pages/learn-s10.html",t:"S10: Team Protocols request-response 协议"},
+  {u:B+"pages/learn-s11.html",t:"S11: Autonomous Agents 自组织与自动认领"},
+  {u:B+"pages/learn-s12.html",t:"S12: Worktree Isolation Git Worktree 目录隔离"},
+  {u:B+"pages/glossary.html",t:"术语表 37 个核心术语完整解释"},
+  {u:B+"pages/simulator.html",t:"Agent 循环模拟器 交互"},
+  {u:B+"pages/buddy-interactive.html",t:"Buddy 实验室 精灵 生成器"},
+  {u:B+"pages/hidden-behaviors.html",t:"隐藏行为 反蒸馏 卧底 挛败感检测 anti-distillation undercover frustration"},
+  {u:B+"pages/modular-prompts.html",t:"模块化系统提示 prompt 110 A/B"},
+  {u:B+"pages/agentic-patterns.html",t:"Agent 设计模式 ULTRAPLAN feature flags 安全绕过"}
+];
+function doSearch(){var q=document.getElementById("searchInput").value.trim().toLowerCase();var res=document.getElementById("searchResults");if(!q){res.innerHTML="";return}var hits=[];var pw2=document.querySelector(".page-wrap");if(pw2){pw2.querySelectorAll("h1,h2,h3,h4,summary,p,.card-title,.details-body p").forEach(function(el){var txt=el.textContent||"";if(txt.toLowerCase().indexOf(q)>-1){var id=el.id||(el.closest&&el.closest("[id]")?el.closest("[id]").id:"");hits.push({text:txt.substring(0,120),id:id,local:true})}})}PAGES.forEach(function(pg){if(pg.t.toLowerCase().indexOf(q)>-1)hits.push({text:pg.t,url:pg.u,local:false})});var seen=new Set();var html="";var count=0;hits.forEach(function(h){if(count>=12)return;var key=h.text.substring(0,50);if(seen.has(key))return;seen.add(key);count++;if(h.local&&h.id){html+='<div class="search-result-item" onclick="closeSearch();document.getElementById(\''+h.id+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><span class="sr-type">\u672c\u9875\x3c/span>'+esc2(h.text)+'\x3c/div>'}else if(!h.local){html+='<div class="search-result-item" onclick="closeSearch();location.href=\''+h.url+'\'"><span class="sr-type">\u9875\u9762\x3c/span>'+esc2(h.text)+'\x3c/div>'}});if(!html)html='<div class="search-empty">\u672a\u627e\u5230\u7ed3\u679c\x3c/div>';res.innerHTML=html}
+function esc2(s){return s.replace(/\x3c/g,"\x26lt;").replace(/>/g,"\x26gt;")}
+})();
+</script>
+<div class="main-content"><div class="page-wrap">
+
+<div class="source-tag community">LEARN CLAUDE CODE</div>
+<h2 id="s06">S06: Context Compact — 三层压缩保持 Agent 不失忆</h2>
+
+<h3 id="这一课解决什么问题-2-2-2-2-2">这一课解决什么问题</h3>
+<p>
+  前 5 课解决了「让 Agent 能做事」的问题，但还有一个致命问题没解决：<strong>messages[] 无限增长</strong>。
+</p>
+<p>
+  每一轮循环都往 messages[] 里追加消息。一个复杂任务可能跑 50 轮，到后面 messages[] 膨胀到 100k+ token。模型处理超长上下文的质量会急剧下降——关键信息被淹没在大量中间过程里，回复变慢、变贵、变蠢。最终可能直接超出上下文窗口限制而报错。
+</p>
+<p>
+  S06 提出<strong>三层渐进式压缩</strong>方案：
+</p>
+
+<h3 id="核心机制-2-2-2-2-2">核心机制</h3>
+
+<div class="diagram">
+  ┌─────────── 三层压缩架构 ───────────────────────────┐
+  │                                                     │
+  │  Layer 1: micro_compact (自动, 每轮)                │
+  │  ═══════════════════════════════════════════         │
+  │  触发: 每次工具调用返回结果后                        │
+  │  做法: 把旧的 tool_result 替换成摘要                 │
+  │                                                     │
+  │  之前: tool_result = "文件内容...3000行代码..."      │
+  │  之后: tool_result = "[已读取 src/auth.ts, 142行,    │
+  │         包含 AuthProvider 类和 3 个方法]"            │
+  │                                                     │
+  │  效果: 单条消息从 ~3000 tokens → ~50 tokens          │
+  │  ─────────────────────────────────────────────       │
+  │                                                     │
+  │  Layer 2: auto_compact (自动, 阈值触发)              │
+  │  ═══════════════════════════════════════════         │
+  │  触发: messages[] 总 token 超过阈值（如 80k）       │
+  │  做法: 调用 LLM 生成整段对话的结构化摘要             │
+  │                                                     │
+  │  ┌─────────────────────────────────────────┐        │
+  │  │ messages = [                             │        │
+  │  │   system_prompt,                         │        │
+  │  │   {role: "user",                         │        │
+  │  │    content: "对话摘要：                   │        │
+  │  │    1. 用户要求重构 auth 模块              │        │
+  │  │    2. 已完成文件结构分析                  │        │
+  │  │    3. 已修改 auth/provider.ts             │        │
+  │  │    4. 待完成：测试更新                    │        │
+  │  │    关键决策：采用策略模式..."},            │        │
+  │  │   ... 最近几轮的原始消息 ...              │        │
+  │  │ ]                                        │        │
+  │  └─────────────────────────────────────────┘        │
+  │                                                     │
+  │  效果: 80k tokens → ~15k tokens                     │
+  │  ─────────────────────────────────────────────       │
+  │                                                     │
+  │  Layer 3: manual compact (手动触发)                  │
+  │  ═══════════════════════════════════════════         │
+  │  触发: 用户输入 /compact 命令                       │
+  │  做法: 同 Layer 2，但可附带自定义指令               │
+  │                                                     │
+  │  例: /compact "只保留 API 设计相关的上下文"         │
+  │                                                     │
+  │  效果: 用户主导的精确压缩                           │
+  └─────────────────────────────────────────────────────┘
+
+  三层关系:
+  ┌──────────┐   ┌──────────┐   ┌──────────┐
+  │ Layer 1  │   │ Layer 2  │   │ Layer 3  │
+  │ 微观     │──▶│ 宏观     │──▶│ 手动     │
+  │ 每轮     │   │ 阈值     │   │ 按需     │
+  │ 局部替换 │   │ 全局摘要 │   │ 精确控制 │
+  │ 无损信息 │   │ 有损压缩 │   │ 用户主导 │
+  └──────────┘   └──────────┘   └──────────┘
+       低                             高
+       ←────── 压缩力度 ──────→
+</div>
+
+<h4>关键概念解释</h4>
+<ul>
+  <li>
+    <span class="tip">micro_compact<span class="tip-text">最轻量的压缩——不调用 LLM，只是用一个规则把旧的 tool_result 内容替换成一句描述。比如读取了一个 500 行的文件，过了 3 轮之后，那个文件内容就被替换成「[已读取 xxx 文件, 500 行]」。因为模型已经看过了，保留完整内容只是浪费。</span></span>
+    — 零成本的垃圾回收。
+  </li>
+  <li>
+    <span class="tip">auto_compact<span class="tip-text">当 messages[] 总 token 超过设定阈值时自动触发。调用 LLM（通常是更便宜的模型或同一模型）生成一段结构化摘要，替换掉大部分历史消息，只保留最近几轮。这是有损压缩——一些细节会丢失。</span></span>
+    — 自动的「大扫除」，用 LLM 做摘要压缩。
+  </li>
+  <li>
+    <span class="tip">manual compact<span class="tip-text">用户通过 /compact 命令手动触发的压缩。可以附带自定义指令告诉 LLM 「只保留什么」「忽略什么」，实现精确的上下文裁剪。</span></span>
+    — 用户拥有最终控制权。
+  </li>
+</ul>
+
+<h3 id="对应到-claude-code-官方的什么-2-2-2-2-2">对应到 Claude Code 官方的什么</h3>
+
+<div class="card">
+  <div class="card-title">/compact + auto-compact 服务</div>
+  <p>Claude Code 的上下文管理和 S06 高度对应：</p>
+  <ul>
+    <li><strong>/compact 命令</strong> — 用户手动触发上下文压缩（Layer 3）</li>
+    <li><strong>auto-compact</strong> — 当 token 用量超过阈值时自动压缩（Layer 2）</li>
+    <li><strong>tool_result 截断</strong> — 对过大的工具输出自动截断或摘要（类似 Layer 1）</li>
+    <li>压缩时保留：system prompt、最近 N 轮消息、todo 状态、关键决策</li>
+    <li>压缩时丢弃：中间的 tool_result 细节、已解决的讨论、冗余分析</li>
+  </ul>
+</div>
+
+<h3 id="变更对比表-2-2-2-2-2">变更对比表</h3>
+<table class="tbl">
+  <tr><th>维度</th><th>S05（无压缩）</th><th>S06（三层压缩）</th></tr>
+  <tr><td>上下文增长</td><td>只增不减，线性增长</td><td>三层控制，维持在阈值内</td></tr>
+  <tr><td>长任务能力</td><td>50+ 轮就会撞墙</td><td>可持续运行数百轮</td></tr>
+  <tr><td>响应质量</td><td>上下文太长时质量下降</td><td>压缩后信噪比更高</td></tr>
+  <tr><td>成本</td><td>每轮 API 调用越来越贵</td><td>压缩后每轮成本可控</td></tr>
+  <tr><td>用户控制</td><td>无</td><td>/compact 命令 + 自定义指令</td></tr>
+  <tr><td>新增组件</td><td>—</td><td>micro_compact + auto_compact + /compact 命令</td></tr>
+</table>
+
+<div class="callout red">
+  <strong>权衡警告：</strong>压缩是有损的。Layer 2 的 LLM 摘要可能丢掉你认为重要的细节。这就是为什么 Layer 3（手动 compact）存在——当自动压缩丢了关键信息时，你可以手动指定保留什么。在实践中，建议在做重大决策前手动 /compact 并明确保留条件。
+</div>
+
+
+<!-- ============================================================ -->
+<!-- 总结 -->
+<!-- ============================================================ -->
+
+
+<style>
+.chapter-nav{display:flex;gap:16px;margin:48px 0 0;padding-top:24px;border-top:1px solid var(--border-subtle)}
+.chapter-nav a{flex:1;display:block;padding:16px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);text-decoration:none!important;transition:all .2s ease}
+.chapter-nav a:hover{border-color:var(--accent-gold);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.chapter-nav .cn-dir{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px}
+.chapter-nav .cn-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:2px}
+.chapter-nav .cn-desc{font-size:12px;color:var(--text-muted);line-height:1.4}
+.chapter-nav .cn-prev{text-align:left}
+.chapter-nav .cn-next{text-align:right}
+@media(max-width:600px){.chapter-nav{flex-direction:column}}
+</style>
+
+<div class="chapter-nav">
+  <a href="../pages/learn-s05.html" class="cn-prev">
+    <div class="cn-dir">← Previous</div>
+    <div class="cn-title">S05: Skill Loading</div>
+    <div class="cn-desc">按需加载的知识库</div>
+  </a>
+  <a href="../pages/learn-s07.html" class="cn-next">
+    <div class="cn-dir">Next →</div>
+    <div class="cn-title">S07: Task System</div>
+    <div class="cn-desc">持久化任务图</div>
+  </a>
+</div>
+
+<style>.chapter-nav{display:flex;gap:16px;margin:48px 0 0;padding-top:24px;border-top:1px solid var(--border-subtle)}.chapter-nav a{flex:1;display:block;padding:16px 18px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);text-decoration:none!important;transition:all .2s ease}.chapter-nav a:hover{border-color:var(--accent-gold);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}.chapter-nav .cn-dir{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px}.chapter-nav .cn-title{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:2px}.chapter-nav .cn-desc{font-size:12px;color:var(--text-muted);line-height:1.4}.chapter-nav .cn-prev{text-align:left}.chapter-nav .cn-next{text-align:right}@media(max-width:600px){.chapter-nav{flex-direction:column}}</style>
+<div class="chapter-nav">
+  <a href="../pages/learn-s05.html" class="cn-prev"><div class="cn-dir">← 上一章</div><div class="cn-title">S05: Skill Loading</div><div class="cn-desc">按需加载的知识库</div></a>
+  <a href="../pages/learn-s07.html" class="cn-next"><div class="cn-dir">下一章 →</div><div class="cn-title">S07: Task System</div><div class="cn-desc">持久化任务图</div></a>
+</div>
+
+</div></div><script src="../js/tooltips.js"></script>
+</body>
+</html>
