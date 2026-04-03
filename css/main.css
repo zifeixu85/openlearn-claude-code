@@ -187,8 +187,10 @@ a:hover { text-decoration: underline; }
   width: 18px; height: 18px;
   transition: transform 0.3s ease;
 }
+/* Default: arrow points left (click to collapse) */
+/* Collapsed: arrow points right (click to expand) */
 .sidebar-btn.collapsed svg {
-  transform: scaleX(-1);
+  transform: rotate(180deg);
 }
 /* Main content follows */
 .main-content {
@@ -810,21 +812,36 @@ summary .badge {
 @media (max-width: 1399px) {
   .main-content { margin-right: 0; }
 }
-/* Below 860px: hide fixed TOC, show FAB instead */
+/* Mobile: below 860px */
 @media (max-width: 860px) {
+  /* TOC → FAB drawer */
   .right-toc:not(.as-drawer) { display: none; }
   .toc-fab { display: block; }
-}
-@media (max-width: 860px) {
-  .sidebar-toggle { display: block; }
-  .sidebar { transform: translateX(-100%); z-index: 150; }
-  .sidebar.open { transform: translateX(0); }
+  /* Sidebar → slide-over with hamburger */
+  .sidebar-btn { display: none; }
+  .sidebar-toggle { display: flex; }
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 150;
+    width: 280px;
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(0,0,0,0.3);
+  }
   .sidebar-overlay.open { display: block; z-index: 140; }
-  .main-content { margin-left: 0; }
+  .main-content { margin-left: 0 !important; }
   .page-wrap { padding: 24px 16px 80px; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   h1 { font-size: 26px; }
   h2 { font-size: 22px; }
+  /* Header: compact on mobile */
+  .header-bar { padding: 0 10px; gap: 8px; }
+  .header-logo { font-size: 12px; }
+  .search-btn { padding: 4px 10px; font-size: 11px; }
+  .theme-toggle { padding: 4px 8px; font-size: 11px; }
+  .github-link svg { width: 16px; height: 16px; }
 }
 
 /* ========== LIGHT MODE OVERRIDES ========== */
